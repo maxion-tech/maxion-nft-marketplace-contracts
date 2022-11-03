@@ -20,8 +20,8 @@ contract MaxionNFTMarketplace is
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant FEE_SETTER_ROLE = keccak256("FEE_SETTER_ROLE");
 
-    bytes32 public constant TRANSACTION_HANDLER_ROLE =
-        keccak256("TRANSACTION_HANDLER_ROLE");
+    bytes32 public constant TRADE_HANDLER_ROLE =
+        keccak256("TRADE_HANDLER_ROLE");
 
     IERC20Upgradeable public currencyContract;
 
@@ -52,8 +52,8 @@ contract MaxionNFTMarketplace is
 
     event SetTotalFeePercent(uint256 newTotalFeePercent);
     event SetFeePercent(
-        uint256 newPartnerFeePercent,
-        uint256 newPlatformFeePercent
+        uint256 newPlatformFeePercent,
+        uint256 newPartnerFeePercent
     );
 
     event Sold(
@@ -62,6 +62,7 @@ contract MaxionNFTMarketplace is
         uint256 tokenId,
         uint256 amount,
         uint256 price,
+        uint256 priceAfterFee,
         bool isBuyLimit
     );
 
@@ -127,7 +128,7 @@ contract MaxionNFTMarketplace is
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(PAUSER_ROLE, msg.sender);
         _grantRole(FEE_SETTER_ROLE, msg.sender);
-        _grantRole(TRANSACTION_HANDLER_ROLE, msg.sender);
+        _grantRole(TRADE_HANDLER_ROLE, msg.sender);
     }
 
     modifier tradable(TradeData memory tradeData) {
@@ -176,20 +177,22 @@ contract MaxionNFTMarketplace is
         return number.div(FEE_DENOMINATOR);
     }
 
-    function calculatePriceAndFee(uint256 amount, uint256 price)
+    function calculatePriceAndFee(uint256 price, uint256 amount)
         public
         view
         returns (
             uint256 totalPrice,
             uint256 totalFee,
+            uint256 priceAfterFee,
             uint256 platformFee,
             uint256 partnerFee
         )
     {
-        require(amount > 0, "Amount must more than zero");
         require(price > 0, "Price must more than zero");
+        require(amount > 0, "Amount must more than zero");
         totalPrice = price.mul(amount);
         totalFee = divFeeDenominator(totalPrice.mul(_totalFeePercent));
+        priceAfterFee = totalPrice.sub(totalFee);
         platformFee = divFeeDenominator(totalFee.mul(_platformFeePercent));
         partnerFee = divFeeDenominator(totalFee.mul(_partnerFeePercent));
     }
@@ -204,43 +207,38 @@ contract MaxionNFTMarketplace is
     )
         external
         whenNotPaused
-        onlyRole(TRANSACTION_HANDLER_ROLE)
+        onlyRole(TRADE_HANDLER_ROLE)
         // make struct to prevent stack too deep
         tradable(TradeData(seller, buyer, tokenId, amount, price, isBuyLimit))
     {
         (
-            uint256 totalPrice,
-            uint256 totalFee,
+            ,
+            ,
+            uint256 priceAfterFee,
             uint256 platformFee,
             uint256 partnerFee
-        ) = calculatePriceAndFee(amount, price);
-        emit Sold(seller, buyer, tokenId, amount, price, isBuyLimit);
-
-        // Transfer nft to buyer
-        nft.safeTransferFrom(
-            address(this),
-            msg.sender,
+        ) = calculatePriceAndFee(price, amount);
+        emit Sold(
+            seller,
+            buyer,
             tokenId,
             amount,
-            "0x0"
+            price,
+            priceAfterFee,
+            isBuyLimit
         );
+
+        // Transfer nft to buyer
+        nft.safeTransferFrom(seller, buyer, tokenId, amount, "0x0");
 
         // Transfer currency to seller
-        currencyContract.safeTransferFrom(
-            msg.sender,
-            seller,
-            totalPrice.sub(totalFee)
-        );
+        currencyContract.safeTransferFrom(buyer, seller, priceAfterFee);
 
         // Transfer currency to owner for platform fee
-        currencyContract.safeTransferFrom(
-            msg.sender,
-            platformTreasury,
-            platformFee
-        );
+        currencyContract.safeTransferFrom(buyer, platformTreasury, platformFee);
 
         // Transfer currency to partner for partner fee
-        currencyContract.safeTransferFrom(msg.sender, partner, partnerFee);
+        currencyContract.safeTransferFrom(buyer, partner, partnerFee);
     }
 
     function setTotalFeePercent(uint256 newTotalFeePercent)
@@ -254,7 +252,7 @@ contract MaxionNFTMarketplace is
             newTotalFeePercentFeeDeno <= 100,
             "Fee must not be more than 100"
         );
-        _totalFeePercent = newTotalFeePercentFeeDeno;
+        _totalFeePercent = newTotalFeePercent;
         emit SetTotalFeePercent(newTotalFeePercentFeeDeno);
     }
 
@@ -276,7 +274,10 @@ contract MaxionNFTMarketplace is
 
         _partnerFeePercent = newPartnerFeePercent;
         _platformFeePercent = newPlatformFeePercent;
-        emit SetFeePercent(newPartnerFeePercent, newPlatformFeePercent);
+        emit SetFeePercent(
+            newPlatformFeePercentFeeDeno,
+            newPartnerFeePercentFeeDeno
+        );
     }
 
     function pause() external onlyRole(PAUSER_ROLE) {

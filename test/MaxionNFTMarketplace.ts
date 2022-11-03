@@ -5,6 +5,7 @@ import { ethers, upgrades } from "hardhat";
 import { MaxionNFTMarketplace } from "../typechain-types";
 import { getImplementationAddress } from "@openzeppelin/upgrades-core";
 import { BigNumber, utils, constants } from "ethers";
+import _ from "lodash";
 
 describe("NFT Marketplace test", function () {
   // We define a fixture to reuse the same setup in every test.
@@ -13,7 +14,7 @@ describe("NFT Marketplace test", function () {
 
   async function deployFixture() {
     // Contracts are deployed using the first signer/account by default
-    const [owner, platformTreasury, partner, seller, buyer, transactionHandler] = await ethers.getSigners();
+    const [owner, platformTreasury, partner, seller, buyer, tradeHandler] = await ethers.getSigners();
     const totalFeePercent = "1000000000"; // 10%*10**8 (10**18-10**10) // Total fee 10%
     const platformFeePercent = "6000000000"; // 60%*10**8 (10**18-10**10)
     const partnerFeePercent = "4000000000"; // 40%*10**8 (10**18-10**10)
@@ -56,9 +57,9 @@ describe("NFT Marketplace test", function () {
     const DEFAULT_ADMIN_ROLE = await nftMarketplace.DEFAULT_ADMIN_ROLE();
     const PAUSER_ROLE = await nftMarketplace.PAUSER_ROLE();
     const FEE_SETTER_ROLE = await nftMarketplace.FEE_SETTER_ROLE();
-    const TRANSACTION_HANDLER_ROLE = await nftMarketplace.TRANSACTION_HANDLER_ROLE();
+    const TRADE_HANDLER_ROLE = await nftMarketplace.TRADE_HANDLER_ROLE();
 
-    await nftMarketplace.grantRole(TRANSACTION_HANDLER_ROLE, transactionHandler.address);
+    await nftMarketplace.grantRole(TRADE_HANDLER_ROLE, tradeHandler.address);
 
     return {
       nftMarketplace,
@@ -70,7 +71,7 @@ describe("NFT Marketplace test", function () {
       partner,
       seller,
       buyer,
-      transactionHandler,
+      tradeHandler,
       totalFeePercent,
       platformFeePercent,
       partnerFeePercent,
@@ -79,11 +80,11 @@ describe("NFT Marketplace test", function () {
       DEFAULT_ADMIN_ROLE,
       PAUSER_ROLE,
       FEE_SETTER_ROLE,
-      TRANSACTION_HANDLER_ROLE
+      TRADE_HANDLER_ROLE
     };
   }
 
-  describe("Deployment", function () {
+  describe("Deployment", () => {
     it("Currency and NFT must be correct", async () => {
       const {
         nftMarketplace,
@@ -118,19 +119,19 @@ describe("NFT Marketplace test", function () {
       const {
         nftMarketplace,
         owner,
-        transactionHandler,
+        tradeHandler,
         DEFAULT_ADMIN_ROLE,
         PAUSER_ROLE,
         FEE_SETTER_ROLE,
-        TRANSACTION_HANDLER_ROLE
+        TRADE_HANDLER_ROLE
       } = await deployFixture();
       // Owner check
       expect(await nftMarketplace.hasRole(DEFAULT_ADMIN_ROLE, owner.address)).to.be.eq(true);
       expect(await nftMarketplace.hasRole(PAUSER_ROLE, owner.address)).to.be.eq(true);
       expect(await nftMarketplace.hasRole(FEE_SETTER_ROLE, owner.address)).to.be.eq(true);
-      expect(await nftMarketplace.hasRole(TRANSACTION_HANDLER_ROLE, owner.address)).to.be.eq(true);
+      expect(await nftMarketplace.hasRole(TRADE_HANDLER_ROLE, owner.address)).to.be.eq(true);
       // Transaction handler check
-      expect(await nftMarketplace.hasRole(TRANSACTION_HANDLER_ROLE, transactionHandler.address)).to.be.eq(true);
+      expect(await nftMarketplace.hasRole(TRADE_HANDLER_ROLE, tradeHandler.address)).to.be.eq(true);
     });
 
     it("Wallet address must be correct", async () => {
@@ -141,6 +142,95 @@ describe("NFT Marketplace test", function () {
       } = await deployFixture();
       expect(await nftMarketplace.platformTreasury()).to.be.eq(platformTreasury.address);
       expect(await nftMarketplace.partner()).to.be.eq(partner.address);
+    });
+  });
+
+  describe("Calculation test", () => {
+    const calculationTest = async (data: {
+      price: number,
+      amount: number,
+      totalFeePercent: number,
+      platformFeePercent: number,
+      partnerFeePercent: number,
+    }) => {
+      const { nftMarketplace } = await deployFixture();
+
+      await nftMarketplace.setTotalFeePercent(data.totalFeePercent * 10 ** 8);
+      await nftMarketplace.setFeePercent(data.partnerFeePercent * 10 ** 8, data.platformFeePercent * 10 ** 8);
+
+      const {
+        totalPrice,
+        totalFee,
+        priceAfterFee,
+        platformFee,
+        partnerFee } = await nftMarketplace.calculatePriceAndFee(utils.parseEther(data.price.toString()), data.amount);
+
+      const calTotalPrice = data.amount * data.price;
+      expect(Number(utils.formatEther(totalPrice))).to.be.closeTo(calTotalPrice, 1);
+      const calTotalFee = (calTotalPrice * data.totalFeePercent) / 100;
+      expect(Number(utils.formatEther(totalFee))).to.be.closeTo(calTotalFee, 1);
+      const calPriceAfterFee = calTotalPrice - calTotalFee;
+      expect(Number(utils.formatEther(priceAfterFee))).to.be.closeTo(calPriceAfterFee, 1);
+      const calPlatformFee = (calTotalFee * data.platformFeePercent) / 100;
+      expect(Number(utils.formatEther(platformFee))).to.be.closeTo(calPlatformFee, 1);
+      const calPartnerFee = (calTotalFee * data.partnerFeePercent) / 100;
+      expect(Number(utils.formatEther(partnerFee))).to.be.closeTo(calPartnerFee, 1);
+    }
+
+    it("Can calculation 20 times with random data", async (numberOfTest: number = 20) => {
+      for (let index = 0; index < numberOfTest; index++) {
+        const platformFeePercent = _.random(1, 99);
+        const partnerFeePercent = 100 - platformFeePercent;
+        await calculationTest({
+          price: _.random(1, 100_000_000),
+          amount: _.random(1, 100_000_000),
+          totalFeePercent: _.random(1, 99),
+          platformFeePercent,
+          partnerFeePercent,
+        });
+      }
+    });
+  });
+
+  describe("Trade test", () => {
+
+    const tradeTest = async (tradeData: {
+      nftId: number, price: number, amountToSell: number, amountToBuy: number
+    }) => {
+      const { nftMarketplace, currencyToken, nft, buyer, seller, platformTreasury, partner, tradeHandler } = await deployFixture();
+      const {
+        totalPrice,
+        totalFee,
+        priceAfterFee,
+        platformFee,
+        partnerFee } = await nftMarketplace.calculatePriceAndFee(utils.parseEther(tradeData.price.toString()), tradeData.amountToBuy);
+      // Mint currency token to buyer
+      await currencyToken.mint(buyer.address, utils.parseEther((tradeData.price * tradeData.amountToBuy).toString()));
+      // Mint NFT to seller
+      await nft.mint(seller.address, tradeData.nftId, tradeData.amountToSell, constants.HashZero);
+      // Buyer approve currency token to marketplace
+      await currencyToken.connect(buyer).approve(nftMarketplace.address, constants.MaxUint256);
+      // Seller approve NFT to marketplace
+      await nft.connect(seller).setApprovalForAll(nftMarketplace.address, true);
+      await nftMarketplace.connect(tradeHandler).trade(seller.address, buyer.address, tradeData.nftId, tradeData.amountToBuy, utils.parseEther(tradeData.price.toString()), false);
+      expect(await currencyToken.balanceOf(buyer.address)).to.be.eq(constants.Zero);
+      expect(await currencyToken.balanceOf(seller.address)).to.be.eq(priceAfterFee);
+      expect(await currencyToken.balanceOf(platformTreasury.address)).to.be.eq(platformFee);
+      expect(await currencyToken.balanceOf(partner.address)).to.be.eq(partnerFee);
+      const amountLeft = tradeData.amountToSell - tradeData.amountToBuy;
+      expect(await nft.balanceOf(seller.address, tradeData.nftId)).to.be.eq(amountLeft);
+      expect(await nft.balanceOf(buyer.address, tradeData.nftId)).to.be.eq(tradeData.amountToBuy);
+    }
+    it("Can trade 20 times with random data", async (numberOfTest: number = 20) => {
+      for (let index = 0; index < numberOfTest; index++) {
+        const amountToSell = _.random(1, 100_000_000);
+        await tradeTest({
+          nftId: _.random(1, 100_000_000),
+          price: _.random(1, 100_000_000),
+          amountToSell,
+          amountToBuy: _.random(1, amountToSell)
+        });
+      }
     });
 
   });
