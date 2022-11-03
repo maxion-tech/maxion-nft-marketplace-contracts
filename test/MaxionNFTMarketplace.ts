@@ -13,7 +13,7 @@ describe("NFT Marketplace test", function () {
 
   async function deployFixture() {
     // Contracts are deployed using the first signer/account by default
-    const [owner, platformTreasury, partner, seller, buyer] = await ethers.getSigners();
+    const [owner, platformTreasury, partner, seller, buyer, transactionHandler] = await ethers.getSigners();
     const totalFeePercent = "1000000000"; // 10%*10**8 (10**18-10**10) // Total fee 10%
     const platformFeePercent = "6000000000"; // 60%*10**8 (10**18-10**10)
     const partnerFeePercent = "4000000000"; // 40%*10**8 (10**18-10**10)
@@ -52,6 +52,14 @@ describe("NFT Marketplace test", function () {
       nftMarketplace.address
     );
 
+    const FEE_DENOMINATOR = await nftMarketplace.FEE_DENOMINATOR();
+    const DEFAULT_ADMIN_ROLE = await nftMarketplace.DEFAULT_ADMIN_ROLE();
+    const PAUSER_ROLE = await nftMarketplace.PAUSER_ROLE();
+    const FEE_SETTER_ROLE = await nftMarketplace.FEE_SETTER_ROLE();
+    const TRANSACTION_HANDLER_ROLE = await nftMarketplace.TRANSACTION_HANDLER_ROLE();
+
+    await nftMarketplace.grantRole(TRANSACTION_HANDLER_ROLE, transactionHandler.address);
+
     return {
       nftMarketplace,
       nft,
@@ -62,10 +70,16 @@ describe("NFT Marketplace test", function () {
       partner,
       seller,
       buyer,
+      transactionHandler,
       totalFeePercent,
       platformFeePercent,
       partnerFeePercent,
       minimumTradePrice,
+      FEE_DENOMINATOR,
+      DEFAULT_ADMIN_ROLE,
+      PAUSER_ROLE,
+      FEE_SETTER_ROLE,
+      TRANSACTION_HANDLER_ROLE
     };
   }
 
@@ -104,10 +118,19 @@ describe("NFT Marketplace test", function () {
       const {
         nftMarketplace,
         owner,
+        transactionHandler,
+        DEFAULT_ADMIN_ROLE,
+        PAUSER_ROLE,
+        FEE_SETTER_ROLE,
+        TRANSACTION_HANDLER_ROLE
       } = await deployFixture();
-      expect(await nftMarketplace.hasRole(await nftMarketplace.DEFAULT_ADMIN_ROLE(), owner.address)).to.be.eq(true);
-      expect(await nftMarketplace.hasRole(await nftMarketplace.PAUSER_ROLE(), owner.address)).to.be.eq(true);
-      expect(await nftMarketplace.hasRole(await nftMarketplace.FEE_SETTER_ROLE(), owner.address)).to.be.eq(true);
+      // Owner check
+      expect(await nftMarketplace.hasRole(DEFAULT_ADMIN_ROLE, owner.address)).to.be.eq(true);
+      expect(await nftMarketplace.hasRole(PAUSER_ROLE, owner.address)).to.be.eq(true);
+      expect(await nftMarketplace.hasRole(FEE_SETTER_ROLE, owner.address)).to.be.eq(true);
+      expect(await nftMarketplace.hasRole(TRANSACTION_HANDLER_ROLE, owner.address)).to.be.eq(true);
+      // Transaction handler check
+      expect(await nftMarketplace.hasRole(TRANSACTION_HANDLER_ROLE, transactionHandler.address)).to.be.eq(true);
     });
 
     it("Wallet address must be correct", async () => {
