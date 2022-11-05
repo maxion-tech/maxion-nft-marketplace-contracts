@@ -19,6 +19,7 @@ Constructure required for deployment
 - Total fee percent (from each trade transaction)
 - Platform fee percent (split from total fee percent)
 - Partner fee percent (split from total fee percent)
+- Mininum trade price (amount * price)
 
 
 #### Note: all of fee is ?%*10**8 format example 10% is "1000000000"
