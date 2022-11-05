@@ -22,11 +22,3 @@ Constructure required for deployment
 
 
 #### Note: all of fee is ?%*10**8 format example 10% is "1000000000"
-
-```mermaid
-  graph TD;
-      A-->B;
-      A-->C;
-      B-->D;
-      C-->D;
-```

@@ -56,7 +56,7 @@ describe("NFT Marketplace test", function () {
     const FEE_DENOMINATOR = await nftMarketplace.FEE_DENOMINATOR();
     const DEFAULT_ADMIN_ROLE = await nftMarketplace.DEFAULT_ADMIN_ROLE();
     const PAUSER_ROLE = await nftMarketplace.PAUSER_ROLE();
-    const FEE_SETTER_ROLE = await nftMarketplace.FEE_SETTER_ROLE();
+    const PARAMETER_SETTER_ROLE = await nftMarketplace.PARAMETER_SETTER_ROLE();
     const TRADE_HANDLER_ROLE = await nftMarketplace.TRADE_HANDLER_ROLE();
 
     await nftMarketplace.grantRole(TRADE_HANDLER_ROLE, tradeHandler.address);
@@ -79,7 +79,7 @@ describe("NFT Marketplace test", function () {
       FEE_DENOMINATOR,
       DEFAULT_ADMIN_ROLE,
       PAUSER_ROLE,
-      FEE_SETTER_ROLE,
+      PARAMETER_SETTER_ROLE,
       TRADE_HANDLER_ROLE
     };
   }
@@ -122,13 +122,13 @@ describe("NFT Marketplace test", function () {
         tradeHandler,
         DEFAULT_ADMIN_ROLE,
         PAUSER_ROLE,
-        FEE_SETTER_ROLE,
+        PARAMETER_SETTER_ROLE,
         TRADE_HANDLER_ROLE
       } = await deployFixture();
       // Owner check
       expect(await nftMarketplace.hasRole(DEFAULT_ADMIN_ROLE, owner.address)).to.be.eq(true);
       expect(await nftMarketplace.hasRole(PAUSER_ROLE, owner.address)).to.be.eq(true);
-      expect(await nftMarketplace.hasRole(FEE_SETTER_ROLE, owner.address)).to.be.eq(true);
+      expect(await nftMarketplace.hasRole(PARAMETER_SETTER_ROLE, owner.address)).to.be.eq(true);
       expect(await nftMarketplace.hasRole(TRADE_HANDLER_ROLE, owner.address)).to.be.eq(true);
       // Transaction handler check
       expect(await nftMarketplace.hasRole(TRADE_HANDLER_ROLE, tradeHandler.address)).to.be.eq(true);
@@ -193,14 +193,44 @@ describe("NFT Marketplace test", function () {
   });
 
   describe("Trade test", () => {
+    /**
+     * This test will cover all tradeable modifier and test setMinimumTradePrice function too
+     * 1) Check seller insufficient NFT amount
+     * 2) Check seller does not approve NFT yet
+     * 3) Check Buyer insufficient allowance
+     * 4) Check buyer insufficient balance
+     * 5) Check mininum trade price
+     */
+    it("Must error validation not pass tradable modifier", async () => {
+      const { nftMarketplace, currencyToken, nft, buyer, seller, platformTreasury, partner, tradeHandler } = await deployFixture();
+      // Check seller insufficient NFT amount
+      await expect(nftMarketplace.connect(tradeHandler).trade(seller.address, buyer.address, 1, 1, utils.parseEther("100"), false)).to.be.revertedWith("Seller insufficient NFT amount");
+      // Mint NFT to seller
+      await nft.mint(seller.address, 1, 1, constants.HashZero);
+      // Check seller does not approve NFT yet
+      await expect(nftMarketplace.connect(tradeHandler).trade(seller.address, buyer.address, 1, 1, utils.parseEther("100"), false)).to.be.revertedWith("Seller does not approve NFT yet");
+      // Seller approve NFT to marketplace
+      await nft.connect(seller).setApprovalForAll(nftMarketplace.address, true);
+      // Check Buyer insufficient allowance
+      await expect(nftMarketplace.connect(tradeHandler).trade(seller.address, buyer.address, 1, 1, utils.parseEther("100"), false)).to.be.revertedWith("Buyer insufficient allowance");
+      await currencyToken.connect(buyer).approve(nftMarketplace.address, constants.MaxUint256);
+      // Check buyer insufficient balance
+      await expect(nftMarketplace.connect(tradeHandler).trade(seller.address, buyer.address, 1, 1, utils.parseEther("100"), false)).to.be.revertedWith("Buyer insufficient balance");
+      // Mint currency token to buyer
+      await currencyToken.mint(buyer.address, utils.parseEther("100"));
+      // Check mininum trade price
+      await nftMarketplace.setMinimumTradePrice(utils.parseEther("1000"));
+      await expect(nftMarketplace.connect(tradeHandler).trade(seller.address, buyer.address, 1, 1, utils.parseEther("100"), false)).to.be.revertedWith("Total price must be >= minimum trade price");
+      await nftMarketplace.setMinimumTradePrice(utils.parseEther("100"));
+      // All operation pass
+      await nftMarketplace.connect(tradeHandler).trade(seller.address, buyer.address, 1, 1, utils.parseEther("100"), false);
+    });
 
     const tradeTest = async (tradeData: {
       nftId: number, price: number, amountToSell: number, amountToBuy: number
     }) => {
       const { nftMarketplace, currencyToken, nft, buyer, seller, platformTreasury, partner, tradeHandler } = await deployFixture();
       const {
-        totalPrice,
-        totalFee,
         priceAfterFee,
         platformFee,
         partnerFee } = await nftMarketplace.calculatePriceAndFee(utils.parseEther(tradeData.price.toString()), tradeData.amountToBuy);

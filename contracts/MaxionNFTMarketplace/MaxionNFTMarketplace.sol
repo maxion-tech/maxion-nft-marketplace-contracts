@@ -18,7 +18,8 @@ contract MaxionNFTMarketplace is
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
-    bytes32 public constant FEE_SETTER_ROLE = keccak256("FEE_SETTER_ROLE");
+    bytes32 public constant PARAMETER_SETTER_ROLE =
+        keccak256("PARAMETER_SETTER_ROLE");
 
     bytes32 public constant TRADE_HANDLER_ROLE =
         keccak256("TRADE_HANDLER_ROLE");
@@ -55,6 +56,7 @@ contract MaxionNFTMarketplace is
         uint256 newPlatformFeePercent,
         uint256 newPartnerFeePercent
     );
+    event SetMinimumTradePrice(uint256 newMinimumTradePrice);
 
     event Sold(
         address seller,
@@ -120,6 +122,8 @@ contract MaxionNFTMarketplace is
         _minimumTradePrice = minimumTradePrice;
 
         emit SetTotalFeePercent(totalFeePercentFeeDeno);
+        emit SetFeePercent(platformFeePercentFeeDeno, partnerFeePercentFeeDeno);
+        emit SetMinimumTradePrice(minimumTradePrice);
 
         __Pausable_init();
         __AccessControl_init();
@@ -127,7 +131,7 @@ contract MaxionNFTMarketplace is
 
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _grantRole(PAUSER_ROLE, msg.sender);
-        _grantRole(FEE_SETTER_ROLE, msg.sender);
+        _grantRole(PARAMETER_SETTER_ROLE, msg.sender);
         _grantRole(TRADE_HANDLER_ROLE, msg.sender);
     }
 
@@ -243,7 +247,7 @@ contract MaxionNFTMarketplace is
 
     function setTotalFeePercent(uint256 newTotalFeePercent)
         external
-        onlyRole(FEE_SETTER_ROLE)
+        onlyRole(PARAMETER_SETTER_ROLE)
     {
         uint256 newTotalFeePercentFeeDeno = newTotalFeePercent.mul(100).div(
             FEE_DENOMINATOR
@@ -259,7 +263,7 @@ contract MaxionNFTMarketplace is
     function setFeePercent(
         uint256 newPartnerFeePercent,
         uint256 newPlatformFeePercent
-    ) external onlyRole(FEE_SETTER_ROLE) {
+    ) external onlyRole(PARAMETER_SETTER_ROLE) {
         uint256 newPartnerFeePercentFeeDeno = newPartnerFeePercent.mul(100).div(
             FEE_DENOMINATOR
         );
@@ -278,6 +282,14 @@ contract MaxionNFTMarketplace is
             newPlatformFeePercentFeeDeno,
             newPartnerFeePercentFeeDeno
         );
+    }
+
+    function setMinimumTradePrice(uint256 newMinimumTradePrice)
+        external
+        onlyRole(PARAMETER_SETTER_ROLE)
+    {
+        _minimumTradePrice = newMinimumTradePrice;
+        emit SetMinimumTradePrice(newMinimumTradePrice);
     }
 
     function pause() external onlyRole(PAUSER_ROLE) {
