@@ -1,0 +1,234 @@
+{
+  "manifestVersion": "3.2",
+  "admin": {
+    "address": "0xD506A17210b32B054d8C4A8A848B359f3cBE7523",
+    "txHash": "0x495386801be44c02bd3159d3e6f8d2134fc41c2f1f55e5d6c90a448f8bf91ab4"
+  },
+  "proxies": [
+    {
+      "address": "0xC033D0ccD18bb86782a1618BCc6a90F1Dc99837F",
+      "txHash": "0x2d47f8d79e62db45247bdea27198ad66bf7c3098a49bdbe411f405b77f35d229",
+      "kind": "transparent"
+    }
+  ],
+  "impls": {
+    "d86253535396f57bd6ffe777132d41e7fd4924503269004fbd79970321687ff4": {
+      "address": "0x7d2534aB042C66b58eA8380bB727f7b5677895bf",
+      "txHash": "0x4ce28d26dbbfe9540e0a03b125672d3fa9c8081410709a354f4a73e125a65272",
+      "layout": {
+        "solcVersion": "0.8.7",
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:62",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:67"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ContextUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:36"
+          },
+          {
+            "label": "_paused",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_bool",
+            "contract": "PausableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol:29"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "52",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "PausableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol:116"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "101",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ERC165Upgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol:41"
+          },
+          {
+            "label": "_roles",
+            "offset": 0,
+            "slot": "151",
+            "type": "t_mapping(t_bytes32,t_struct(RoleData)34_storage)",
+            "contract": "AccessControlUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol:61"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "152",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "AccessControlUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol:259"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "201",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ERC1155ReceiverUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155ReceiverUpgradeable.sol:31"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "251",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ERC1155HolderUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol:48"
+          },
+          {
+            "label": "currencyContract",
+            "offset": 0,
+            "slot": "301",
+            "type": "t_contract(IERC20Upgradeable)1056",
+            "contract": "MaxionNFTMarketplace",
+            "src": "contracts/MaxionNFTMarketplace/MaxionNFTMarketplace.sol:27"
+          },
+          {
+            "label": "_totalFeePercent",
+            "offset": 0,
+            "slot": "302",
+            "type": "t_uint256",
+            "contract": "MaxionNFTMarketplace",
+            "src": "contracts/MaxionNFTMarketplace/MaxionNFTMarketplace.sol:31"
+          },
+          {
+            "label": "_platformFeePercent",
+            "offset": 0,
+            "slot": "303",
+            "type": "t_uint256",
+            "contract": "MaxionNFTMarketplace",
+            "src": "contracts/MaxionNFTMarketplace/MaxionNFTMarketplace.sol:33"
+          },
+          {
+            "label": "_partnerFeePercent",
+            "offset": 0,
+            "slot": "304",
+            "type": "t_uint256",
+            "contract": "MaxionNFTMarketplace",
+            "src": "contracts/MaxionNFTMarketplace/MaxionNFTMarketplace.sol:34"
+          },
+          {
+            "label": "_minimumTradePrice",
+            "offset": 0,
+            "slot": "305",
+            "type": "t_uint256",
+            "contract": "MaxionNFTMarketplace",
+            "src": "contracts/MaxionNFTMarketplace/MaxionNFTMarketplace.sol:36"
+          },
+          {
+            "label": "nft",
+            "offset": 0,
+            "slot": "306",
+            "type": "t_contract(IERC1155Upgradeable)853",
+            "contract": "MaxionNFTMarketplace",
+            "src": "contracts/MaxionNFTMarketplace/MaxionNFTMarketplace.sol:39"
+          },
+          {
+            "label": "partner",
+            "offset": 0,
+            "slot": "307",
+            "type": "t_address",
+            "contract": "MaxionNFTMarketplace",
+            "src": "contracts/MaxionNFTMarketplace/MaxionNFTMarketplace.sol:41"
+          },
+          {
+            "label": "platformTreasury",
+            "offset": 0,
+            "slot": "308",
+            "type": "t_address",
+            "contract": "MaxionNFTMarketplace",
+            "src": "contracts/MaxionNFTMarketplace/MaxionNFTMarketplace.sol:42"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_contract(IERC1155Upgradeable)853": {
+            "label": "contract IERC1155Upgradeable",
+            "numberOfBytes": "20"
+          },
+          "t_contract(IERC20Upgradeable)1056": {
+            "label": "contract IERC20Upgradeable",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_struct(RoleData)34_storage)": {
+            "label": "mapping(bytes32 => struct AccessControlUpgradeable.RoleData)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(RoleData)34_storage": {
+            "label": "struct AccessControlUpgradeable.RoleData",
+            "members": [
+              {
+                "label": "members",
+                "type": "t_mapping(t_address,t_bool)",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "adminRole",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        }
+      }
+    }
+  }
+}
