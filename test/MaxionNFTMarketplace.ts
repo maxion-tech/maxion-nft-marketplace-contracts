@@ -14,7 +14,7 @@ describe("NFT Marketplace test", function () {
 
   async function deployFixture() {
     // Contracts are deployed using the first signer/account by default
-    const [owner, platformTreasury, partner, seller, buyer, tradeHandler] = await ethers.getSigners();
+    const [owner, admin, parameterSetter, platformTreasury, partner, seller, buyer, tradeHandler] = await ethers.getSigners();
     const totalFeePercent = "1000000000"; // 10%*10**8 (10**18-10**10) // Total fee 10%
     const platformFeePercent = "6000000000"; // 60%*10**8 (10**18-10**10)
     const partnerFeePercent = "4000000000"; // 40%*10**8 (10**18-10**10)
@@ -44,6 +44,7 @@ describe("NFT Marketplace test", function () {
       platformFeePercent, // Partner fee
       partnerFeePercent, // Platform fee,
       minimumTradePrice, // Minimum trade price
+      admin.address, // Admin address
     ])) as MaxionNFTMarketplace;
 
     await nftMarketplace.deployed();
@@ -59,7 +60,9 @@ describe("NFT Marketplace test", function () {
     const PARAMETER_SETTER_ROLE = await nftMarketplace.PARAMETER_SETTER_ROLE();
     const TRADE_HANDLER_ROLE = await nftMarketplace.TRADE_HANDLER_ROLE();
 
-    await nftMarketplace.grantRole(TRADE_HANDLER_ROLE, tradeHandler.address);
+    await nftMarketplace.connect(admin).grantRole(TRADE_HANDLER_ROLE, tradeHandler.address);
+    await nftMarketplace.connect(admin).grantRole(PARAMETER_SETTER_ROLE, parameterSetter.address);
+    
 
     return {
       nftMarketplace,
@@ -67,6 +70,8 @@ describe("NFT Marketplace test", function () {
       currencyToken,
       nftMarketplaceImplAddress,
       owner,
+      admin,
+      parameterSetter,
       platformTreasury,
       partner,
       seller,
@@ -119,6 +124,7 @@ describe("NFT Marketplace test", function () {
       const {
         nftMarketplace,
         owner,
+        admin,
         tradeHandler,
         DEFAULT_ADMIN_ROLE,
         PAUSER_ROLE,
@@ -126,10 +132,7 @@ describe("NFT Marketplace test", function () {
         TRADE_HANDLER_ROLE
       } = await deployFixture();
       // Owner check
-      expect(await nftMarketplace.hasRole(DEFAULT_ADMIN_ROLE, owner.address)).to.be.eq(true);
-      expect(await nftMarketplace.hasRole(PAUSER_ROLE, owner.address)).to.be.eq(true);
-      expect(await nftMarketplace.hasRole(PARAMETER_SETTER_ROLE, owner.address)).to.be.eq(true);
-      expect(await nftMarketplace.hasRole(TRADE_HANDLER_ROLE, owner.address)).to.be.eq(true);
+      expect(await nftMarketplace.hasRole(DEFAULT_ADMIN_ROLE, admin.address)).to.be.eq(true);
       // Transaction handler check
       expect(await nftMarketplace.hasRole(TRADE_HANDLER_ROLE, tradeHandler.address)).to.be.eq(true);
     });
@@ -153,10 +156,10 @@ describe("NFT Marketplace test", function () {
       platformFeePercent: number,
       partnerFeePercent: number,
     }) => {
-      const { nftMarketplace } = await deployFixture();
+      const { nftMarketplace, parameterSetter } = await deployFixture();
 
-      await nftMarketplace.setTotalFeePercent(data.totalFeePercent * 10 ** 8);
-      await nftMarketplace.setFeePercent(data.partnerFeePercent * 10 ** 8, data.platformFeePercent * 10 ** 8);
+      await nftMarketplace.connect(parameterSetter).setTotalFeePercent(data.totalFeePercent * 10 ** 8);
+      await nftMarketplace.connect(parameterSetter).setFeePercent(data.partnerFeePercent * 10 ** 8, data.platformFeePercent * 10 ** 8);
 
       const {
         totalPrice,
@@ -202,7 +205,7 @@ describe("NFT Marketplace test", function () {
      * 5) Check mininum trade price
      */
     it("Must error validation not pass tradable modifier", async () => {
-      const { nftMarketplace, currencyToken, nft, buyer, seller, platformTreasury, partner, tradeHandler } = await deployFixture();
+      const { nftMarketplace, currencyToken, nft, parameterSetter, buyer, seller, platformTreasury, partner, tradeHandler } = await deployFixture();
       // Check seller insufficient NFT amount
       await expect(nftMarketplace.connect(tradeHandler).trade(seller.address, buyer.address, 1, 1, utils.parseEther("100"), false)).to.be.revertedWith("Seller insufficient NFT amount");
       // Mint NFT to seller
@@ -219,9 +222,9 @@ describe("NFT Marketplace test", function () {
       // Mint currency token to buyer
       await currencyToken.mint(buyer.address, utils.parseEther("100"));
       // Check mininum trade price
-      await nftMarketplace.setMinimumTradePrice(utils.parseEther("1000"));
+      await nftMarketplace.connect(parameterSetter).setMinimumTradePrice(utils.parseEther("1000"));
       await expect(nftMarketplace.connect(tradeHandler).trade(seller.address, buyer.address, 1, 1, utils.parseEther("100"), false)).to.be.revertedWith("Total price must be >= minimum trade price");
-      await nftMarketplace.setMinimumTradePrice(utils.parseEther("100"));
+      await nftMarketplace.connect(parameterSetter).setMinimumTradePrice(utils.parseEther("100"));
       // All operation pass
       await nftMarketplace.connect(tradeHandler).trade(seller.address, buyer.address, 1, 1, utils.parseEther("100"), false);
     });
