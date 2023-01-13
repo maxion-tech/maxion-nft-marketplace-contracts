@@ -59,8 +59,8 @@ contract MaxionNFTMarketplace is
     event SetMinimumTradePrice(uint256 newMinimumTradePrice);
 
     event Sold(
-        address seller,
-        address buyer,
+        address indexed seller,
+        address indexed buyer,
         uint256 tokenId,
         uint256 amount,
         uint256 price,
