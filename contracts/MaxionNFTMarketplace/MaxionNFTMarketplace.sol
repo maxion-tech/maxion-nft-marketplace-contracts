@@ -81,7 +81,8 @@ contract MaxionNFTMarketplace is
         uint256 totalFeePercent,
         uint256 platformFeePercent,
         uint256 partnerFeePercent,
-        uint256 minimumTradePrice
+        uint256 minimumTradePrice,
+        address admin
     ) external initializer {
         uint256 totalFeePercentFeeDeno = totalFeePercent.mul(100).div(
             FEE_DENOMINATOR
@@ -112,6 +113,10 @@ contract MaxionNFTMarketplace is
             platformFeePercentFeeDeno.add(partnerFeePercentFeeDeno) == 100,
             "Platform fee + partner fee must be 100%"
         );
+        require(
+            address(admin) != address(0) && address(admin) != msg.sender,
+            "Admin address must not be zero or msg.sender"
+        );
         nft = IERC1155Upgradeable(nftAddress);
         currencyContract = IERC20Upgradeable(currencyAddress);
         _totalFeePercent = totalFeePercent;
@@ -129,10 +134,7 @@ contract MaxionNFTMarketplace is
         __AccessControl_init();
         __ERC1155Holder_init();
 
-        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _grantRole(PAUSER_ROLE, msg.sender);
-        _grantRole(PARAMETER_SETTER_ROLE, msg.sender);
-        _grantRole(TRADE_HANDLER_ROLE, msg.sender);
+        _grantRole(DEFAULT_ADMIN_ROLE, address(admin));
     }
 
     modifier tradable(TradeData memory tradeData) {
