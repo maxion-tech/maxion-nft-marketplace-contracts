@@ -6,7 +6,7 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+import "hardhat/console.sol";
 
 /// @custom:security-contact dev@maxion.tech
 contract MaxionNFTMarketplace is
@@ -14,7 +14,6 @@ contract MaxionNFTMarketplace is
     AccessControlUpgradeable,
     ERC1155HolderUpgradeable
 {
-    using SafeMathUpgradeable for uint256;
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
@@ -84,15 +83,12 @@ contract MaxionNFTMarketplace is
         uint256 minimumTradePrice,
         address admin
     ) external initializer {
-        uint256 totalFeePercentFeeDeno = totalFeePercent.mul(100).div(
-            FEE_DENOMINATOR
-        );
-        uint256 platformFeePercentFeeDeno = platformFeePercent.mul(100).div(
-            FEE_DENOMINATOR
-        );
-        uint256 partnerFeePercentFeeDeno = partnerFeePercent.mul(100).div(
-            FEE_DENOMINATOR
-        );
+        uint256 totalFeePercentFeeDeno = (totalFeePercent * 100) /
+            FEE_DENOMINATOR;
+        uint256 platformFeePercentFeeDeno = (platformFeePercent * 100) /
+            FEE_DENOMINATOR;
+        uint256 partnerFeePercentFeeDeno = (partnerFeePercent * 100) /
+            FEE_DENOMINATOR;
         require(
             address(currencyAddress) != address(0),
             "Address must not be zero"
@@ -110,7 +106,7 @@ contract MaxionNFTMarketplace is
             "Total fee must not be more than 100"
         );
         require(
-            platformFeePercentFeeDeno.add(partnerFeePercentFeeDeno) == 100,
+            platformFeePercentFeeDeno + partnerFeePercentFeeDeno == 100 && platformFeePercent + partnerFeePercent == 10**10,
             "Platform fee + partner fee must be 100%"
         );
         require(
@@ -156,7 +152,7 @@ contract MaxionNFTMarketplace is
             nft.isApprovedForAll(tradeData.seller, address(this)),
             "Seller does not approve NFT yet"
         );
-        uint256 totalPrice = tradeData.price.mul(tradeData.amount);
+        uint256 totalPrice = tradeData.price * tradeData.amount;
 
         require(
             totalPrice >= _minimumTradePrice,
@@ -180,7 +176,7 @@ contract MaxionNFTMarketplace is
         pure
         returns (uint256 result)
     {
-        return number.div(FEE_DENOMINATOR);
+        return number / FEE_DENOMINATOR;
     }
 
     function calculatePriceAndFee(uint256 price, uint256 amount)
@@ -196,11 +192,11 @@ contract MaxionNFTMarketplace is
     {
         require(price > 0, "Price must more than zero");
         require(amount > 0, "Amount must more than zero");
-        totalPrice = price.mul(amount);
-        totalFee = divFeeDenominator(totalPrice.mul(_totalFeePercent));
-        priceAfterFee = totalPrice.sub(totalFee);
-        platformFee = divFeeDenominator(totalFee.mul(_platformFeePercent));
-        partnerFee = divFeeDenominator(totalFee.mul(_partnerFeePercent));
+        totalPrice = price * amount;
+        totalFee = divFeeDenominator(totalPrice * _totalFeePercent);
+        priceAfterFee = totalPrice - totalFee;
+        platformFee = divFeeDenominator(totalFee * _platformFeePercent);
+        partnerFee = divFeeDenominator(totalFee * _partnerFeePercent);
     }
 
     function trade(
@@ -251,9 +247,8 @@ contract MaxionNFTMarketplace is
         external
         onlyRole(PARAMETER_SETTER_ROLE)
     {
-        uint256 newTotalFeePercentFeeDeno = newTotalFeePercent.mul(100).div(
-            FEE_DENOMINATOR
-        );
+        uint256 newTotalFeePercentFeeDeno = (newTotalFeePercent * 100) /
+            FEE_DENOMINATOR;
         require(
             newTotalFeePercentFeeDeno <= 100,
             "Fee must not be more than 100"
@@ -266,14 +261,13 @@ contract MaxionNFTMarketplace is
         uint256 newPartnerFeePercent,
         uint256 newPlatformFeePercent
     ) external onlyRole(PARAMETER_SETTER_ROLE) {
-        uint256 newPartnerFeePercentFeeDeno = newPartnerFeePercent.mul(100).div(
-            FEE_DENOMINATOR
-        );
-        uint256 newPlatformFeePercentFeeDeno = newPlatformFeePercent
-            .mul(100)
-            .div(FEE_DENOMINATOR);
+        uint256 newPartnerFeePercentFeeDeno = (newPartnerFeePercent * 100) /
+            FEE_DENOMINATOR;
+        uint256 newPlatformFeePercentFeeDeno = (newPlatformFeePercent * 100) /
+            FEE_DENOMINATOR;
         require(
-            newPlatformFeePercentFeeDeno.add(newPartnerFeePercentFeeDeno) ==
+            newPartnerFeePercent + newPlatformFeePercent == 10**10 &&
+                newPlatformFeePercentFeeDeno + newPartnerFeePercentFeeDeno ==
                 100,
             "Platform fee + partner fee must be 100%"
         );
