@@ -3,9 +3,12 @@
   "scripts": {
     "build": "hardhat compile",
     "test": "hardhat test",
-    "deploy:bscTestnet": "hardhat run scripts/deploy.ts --network bscTestnet"
+    "deploy:bscTestnet": "hardhat run scripts/deploy.ts --network bscTestnet",
+    "deploy:bscTestnet:hw": "source .env.cbt && hardhat run scripts/deploy_hw.ts --network bscTestnet"
   },
   "devDependencies": {
+    "@ethersproject/hardware-wallets": "^5.7.0",
+    "@ledgerhq/hw-transport-node-hid": "^6.27.16",
     "@nomicfoundation/hardhat-toolbox": "^1.0.2",
     "@openzeppelin/contracts": "^4.7.3",
     "@openzeppelin/contracts-upgradeable": "^4.7.3",

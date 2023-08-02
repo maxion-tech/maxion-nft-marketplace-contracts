@@ -15,7 +15,7 @@ describe("NFT Marketplace test", function () {
   async function deployFixture() {
     // Contracts are deployed using the first signer/account by default
     const [owner, admin, parameterSetter, platformTreasury, partner, seller, buyer, tradeHandler] = await ethers.getSigners();
-    const totalFeePercent = "1000000000"; // 10%*10**8 (10**18-10**10) // Total fee 10%
+    const totalFeePercent = "2000000000"; // 10%*10**8 (10**18-10**10) // Total fee 10%
     const platformFeePercent = "6000000000"; // 60%*10**8 (10**18-10**10)
     const partnerFeePercent = "4000000000"; // 40%*10**8 (10**18-10**10)
     const minimumTradePrice = utils.parseEther("1");
