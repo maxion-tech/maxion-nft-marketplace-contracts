@@ -1,6 +1,7 @@
 node_modules
 .env
-.env.cbt
+.env.testnet
+.env.mainnet
 coverage
 coverage.json
 typechain

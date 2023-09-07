@@ -24,9 +24,9 @@ async function main() {
   console.log(`Deploying from ${address}`);
 
   const totalFeePercent = "2000000000"; // 10%*10**8 (10**18-10**10) // Total fee 10%
-  const platformFeePercent = "6000000000"; // 60%*10**8 (10**18-10**10)
-  const partnerFeePercent = "4000000000"; // 40%*10**8 (10**18-10**10)
-  const minimumTradePrice = utils.parseEther("1");
+  const platformFeePercent = "5000000000"; // 60%*10**8 (10**18-10**10)
+  const partnerFeePercent = "5000000000"; // 40%*10**8 (10**18-10**10)
+  const minimumTradePrice = utils.parseEther("10");
 
   const NFTMarketplace = await ethers.getContractFactory(
     "MaxionNFTMarketplace",
@@ -54,7 +54,7 @@ async function main() {
 
   console.log(`Maxion NFT Marketplace deployed to: ${nftMarketplace.address}`);
   console.log(`Implementation address is: ${nftMarketplaceImplAddress}`);
-  console.log(`Verify contract by command: npx hardhat verify ${nftMarketplace.address} --network ??`)
+  console.log(`Verify contract by command: npx hardhat verify ${nftMarketplace.address} --network ${hre.network.name}`)
 }
 
 // We recommend this pattern to be able to use async/await everywhere
