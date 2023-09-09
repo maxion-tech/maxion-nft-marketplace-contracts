@@ -1,20 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.7;
 
-import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC1155/utils/ERC1155HolderUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
+import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "hardhat/console.sol";
 
 /// @custom:security-contact dev@maxion.tech
-contract MaxionNFTMarketplace is
-    PausableUpgradeable,
-    AccessControlUpgradeable,
-    ERC1155HolderUpgradeable
-{
-    using SafeERC20Upgradeable for IERC20Upgradeable;
+contract MaxionNFTMarketplace is Pausable, AccessControl, ERC1155Holder {
+    using SafeERC20 for IERC20;
 
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant PARAMETER_SETTER_ROLE =
@@ -23,7 +19,7 @@ contract MaxionNFTMarketplace is
     bytes32 public constant TRADE_HANDLER_ROLE =
         keccak256("TRADE_HANDLER_ROLE");
 
-    IERC20Upgradeable public currencyContract;
+    IERC20 public currencyContract;
 
     // totalFee = platform fee + partner fee
     // total total fee percent
@@ -34,8 +30,8 @@ contract MaxionNFTMarketplace is
     // minimum trade price (amount * price)
     uint256 public _minimumTradePrice;
 
-    uint256 public constant FEE_DENOMINATOR = 10**10; // 10**10
-    IERC1155Upgradeable public nft;
+    uint256 public constant FEE_DENOMINATOR = 10 ** 10; // 10**10
+    IERC1155 public nft;
 
     address public partner;
     address public platformTreasury;
@@ -67,12 +63,7 @@ contract MaxionNFTMarketplace is
         bool isBuyLimit
     );
 
-    /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() {
-        _disableInitializers();
-    }
-
-    function initialize(
+    constructor(
         address nftAddress,
         address currencyAddress,
         address platformTreasuryAddress,
@@ -82,7 +73,7 @@ contract MaxionNFTMarketplace is
         uint256 partnerFeePercent,
         uint256 minimumTradePrice,
         address admin
-    ) external initializer {
+    ) {
         uint256 totalFeePercentFeeDeno = (totalFeePercent * 100) /
             FEE_DENOMINATOR;
         uint256 platformFeePercentFeeDeno = (platformFeePercent * 100) /
@@ -106,15 +97,16 @@ contract MaxionNFTMarketplace is
             "Total fee must not be more than 100"
         );
         require(
-            platformFeePercentFeeDeno + partnerFeePercentFeeDeno == 100 && platformFeePercent + partnerFeePercent == 10**10,
+            platformFeePercentFeeDeno + partnerFeePercentFeeDeno == 100 &&
+                platformFeePercent + partnerFeePercent == 10 ** 10,
             "Platform fee + partner fee must be 100%"
         );
         require(
             address(admin) != address(0) && address(admin) != msg.sender,
             "Admin address must not be zero or msg.sender"
         );
-        nft = IERC1155Upgradeable(nftAddress);
-        currencyContract = IERC20Upgradeable(currencyAddress);
+        nft = IERC1155(nftAddress);
+        currencyContract = IERC20(currencyAddress);
         _totalFeePercent = totalFeePercent;
         _platformFeePercent = platformFeePercent;
         _partnerFeePercent = partnerFeePercent;
@@ -125,10 +117,6 @@ contract MaxionNFTMarketplace is
         emit SetTotalFeePercent(totalFeePercentFeeDeno);
         emit SetFeePercent(platformFeePercentFeeDeno, partnerFeePercentFeeDeno);
         emit SetMinimumTradePrice(minimumTradePrice);
-
-        __Pausable_init();
-        __AccessControl_init();
-        __ERC1155Holder_init();
 
         _grantRole(DEFAULT_ADMIN_ROLE, address(admin));
     }
@@ -171,15 +159,16 @@ contract MaxionNFTMarketplace is
         _;
     }
 
-    function divFeeDenominator(uint256 number)
-        public
-        pure
-        returns (uint256 result)
-    {
+    function divFeeDenominator(
+        uint256 number
+    ) public pure returns (uint256 result) {
         return number / FEE_DENOMINATOR;
     }
 
-    function calculatePriceAndFee(uint256 price, uint256 amount)
+    function calculatePriceAndFee(
+        uint256 price,
+        uint256 amount
+    )
         public
         view
         returns (
@@ -243,10 +232,9 @@ contract MaxionNFTMarketplace is
         currencyContract.safeTransferFrom(buyer, partner, partnerFee);
     }
 
-    function setTotalFeePercent(uint256 newTotalFeePercent)
-        external
-        onlyRole(PARAMETER_SETTER_ROLE)
-    {
+    function setTotalFeePercent(
+        uint256 newTotalFeePercent
+    ) external onlyRole(PARAMETER_SETTER_ROLE) {
         uint256 newTotalFeePercentFeeDeno = (newTotalFeePercent * 100) /
             FEE_DENOMINATOR;
         require(
@@ -266,7 +254,7 @@ contract MaxionNFTMarketplace is
         uint256 newPlatformFeePercentFeeDeno = (newPlatformFeePercent * 100) /
             FEE_DENOMINATOR;
         require(
-            newPartnerFeePercent + newPlatformFeePercent == 10**10 &&
+            newPartnerFeePercent + newPlatformFeePercent == 10 ** 10 &&
                 newPlatformFeePercentFeeDeno + newPartnerFeePercentFeeDeno ==
                 100,
             "Platform fee + partner fee must be 100%"
@@ -280,10 +268,9 @@ contract MaxionNFTMarketplace is
         );
     }
 
-    function setMinimumTradePrice(uint256 newMinimumTradePrice)
-        external
-        onlyRole(PARAMETER_SETTER_ROLE)
-    {
+    function setMinimumTradePrice(
+        uint256 newMinimumTradePrice
+    ) external onlyRole(PARAMETER_SETTER_ROLE) {
         _minimumTradePrice = newMinimumTradePrice;
         emit SetMinimumTradePrice(newMinimumTradePrice);
     }
@@ -297,12 +284,9 @@ contract MaxionNFTMarketplace is
     }
 
     // The following functions are overrides required by Solidity.
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        override(ERC1155ReceiverUpgradeable, AccessControlUpgradeable)
-        returns (bool)
-    {
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view override(ERC1155Receiver, AccessControl) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
 }

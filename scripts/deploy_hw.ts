@@ -1,7 +1,5 @@
-import hre, { ethers, upgrades } from "hardhat";
+import hre, { ethers } from "hardhat";
 import { utils } from "ethers";
-import { getImplementationAddress } from "@openzeppelin/upgrades-core";
-import { MaxionNFTMarketplace } from "../typechain-types";
 import { LedgerSigner } from "@ethersproject/hardware-wallets";
 
 async function main() {
@@ -33,7 +31,7 @@ async function main() {
     signer,
   );
 
-  const nftMarketplace = (await upgrades.deployProxy(NFTMarketplace, [
+  const nftMarketplace = await NFTMarketplace.deploy(
     NFT_ADDRESS, // NFT address
     CURRENCY_TOKEN_ADDRESS, // Currency token address
     PLATFORM_TREASURY_ADDRESS, // Platform treasury wallet addfress
@@ -42,19 +40,12 @@ async function main() {
     platformFeePercent, // Partner fee
     partnerFeePercent, // Platform fee,
     minimumTradePrice, // Minimum trade price
-    ADMIN_ADDRESS,
-  ])) as MaxionNFTMarketplace;
+    ADMIN_ADDRESS); // Admin address
 
   await nftMarketplace.deployed();
 
-  const nftMarketplaceImplAddress = await getImplementationAddress(
-    ethers.provider,
-    nftMarketplace.address
-  );
-
   console.log(`Maxion NFT Marketplace deployed to: ${nftMarketplace.address}`);
-  console.log(`Implementation address is: ${nftMarketplaceImplAddress}`);
-  console.log(`Verify contract by command: npx hardhat verify ${nftMarketplace.address} --network ${hre.network.name}`)
+  console.log(`Verify contract by command: npx hardhat verify ${nftMarketplace.address} ${NFT_ADDRESS} ${CURRENCY_TOKEN_ADDRESS} ${PLATFORM_TREASURY_ADDRESS} ${PARTNER_ADDRESS} ${totalFeePercent} ${platformFeePercent} ${partnerFeePercent} ${minimumTradePrice} ${ADMIN_ADDRESS} --network ${hre.network.name}`);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

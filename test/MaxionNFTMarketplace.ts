@@ -2,9 +2,7 @@ import { time, loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import { expect } from "chai";
 import { ethers, upgrades } from "hardhat";
-import { MaxionNFTMarketplace } from "../typechain-types";
-import { getImplementationAddress } from "@openzeppelin/upgrades-core";
-import { BigNumber, utils, constants } from "ethers";
+import { utils, constants } from "ethers";
 import _ from "lodash";
 
 describe("NFT Marketplace test", function () {
@@ -35,8 +33,7 @@ describe("NFT Marketplace test", function () {
       "MaxionNFTMarketplace"
     );
 
-    const nftMarketplace = (await upgrades.deployProxy(NFTMarketplace, [
-      nft.address, // NFT address
+    const nftMarketplace = await NFTMarketplace.deploy(nft.address, // NFT address
       currencyToken.address, // Currency token address
       platformTreasury.address, // Platform treasury wallet addfress
       partner.address, // Partner wallet address
@@ -44,15 +41,9 @@ describe("NFT Marketplace test", function () {
       platformFeePercent, // Partner fee
       partnerFeePercent, // Platform fee,
       minimumTradePrice, // Minimum trade price
-      admin.address, // Admin address
-    ])) as MaxionNFTMarketplace;
+      admin.address); // Admin address
 
     await nftMarketplace.deployed();
-
-    const nftMarketplaceImplAddress = await getImplementationAddress(
-      ethers.provider,
-      nftMarketplace.address
-    );
 
     const FEE_DENOMINATOR = await nftMarketplace.FEE_DENOMINATOR();
     const DEFAULT_ADMIN_ROLE = await nftMarketplace.DEFAULT_ADMIN_ROLE();
@@ -62,13 +53,12 @@ describe("NFT Marketplace test", function () {
 
     await nftMarketplace.connect(admin).grantRole(TRADE_HANDLER_ROLE, tradeHandler.address);
     await nftMarketplace.connect(admin).grantRole(PARAMETER_SETTER_ROLE, parameterSetter.address);
-    
+
 
     return {
       nftMarketplace,
       nft,
       currencyToken,
-      nftMarketplaceImplAddress,
       owner,
       admin,
       parameterSetter,
