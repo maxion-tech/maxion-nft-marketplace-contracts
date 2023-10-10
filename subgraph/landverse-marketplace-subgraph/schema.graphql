@@ -1,0 +1,64 @@
+type Marketplace @entity {
+  id: ID!
+  totalFeePercent: BigInt!
+  platformFeePercent: BigInt!
+  partnerFeePercent: BigInt!
+  minimumTradePrice: BigInt!
+  paused: Boolean!
+}
+
+type Transaction @entity(immutable: true) {
+  id: Bytes!
+  seller: Bytes! # address
+  buyer: Bytes! # address
+  tokenId: BigInt! # uint256
+  amount: BigDecimal! # uint256
+  price: BigDecimal! # uint256
+  priceAfterFee: BigDecimal! # uint256
+  platformFeePercent: BigDecimal! # uint256
+  partnerFeePercent: BigDecimal! # uint256
+  platformFeeAmount: BigDecimal! # uint256
+  partnerFeeAmount: BigDecimal! # uint256
+  totalFee: BigDecimal! # uint256
+  totalFeePercent: BigDecimal! # uint256
+  isBuyLimit: Boolean! # bool
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type TransactionHourData @entity {
+  id: ID!
+  startUnixTime: BigInt! # unix timestamp for start of hour
+  totalAmount: BigInt! # uint256
+  totalPrice: BigDecimal! # uint256
+  totalPriceAfterFee: BigDecimal! # uint256
+  totalPlatformFee: BigDecimal! # uint256
+  totalPartnerFee: BigDecimal! # uint256
+  totalFee: BigDecimal! # uint256
+  totalTransaction: BigInt! # uint256
+}
+
+type TransactionDayData @entity {
+  id: ID!
+  startUnixTime: BigInt! # unix timestamp for start of hour
+  totalAmount: BigInt! # uint256
+  totalPrice: BigDecimal! # uint256
+  totalPriceAfterFee: BigDecimal! # uint256
+  totalPlatformFee: BigDecimal! # uint256
+  totalPartnerFee: BigDecimal! # uint256
+  totalFee: BigDecimal! # uint256
+  totalTransaction: BigInt! # uint256
+}
+
+type TransactionMonthData @entity {
+  id: ID!
+  startUnixTime: BigInt! # unix timestamp for start of hour
+  totalAmount: BigInt! # uint256
+  totalPrice: BigDecimal! # uint256
+  totalPriceAfterFee: BigDecimal! # uint256
+  totalPlatformFee: BigDecimal! # uint256
+  totalPartnerFee: BigDecimal! # uint256
+  totalFee: BigDecimal! # uint256
+  totalTransaction: BigInt! # uint256
+}
