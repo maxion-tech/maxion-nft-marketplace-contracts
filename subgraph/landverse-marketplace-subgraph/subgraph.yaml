@@ -1,0 +1,48 @@
+specVersion: 0.0.5
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: MaxionNFTMarketplace
+    network: bsc
+    source:
+      address: "0xA57ABcbD6c52ac8e01c5D388Cda02acc5a6AB2b4"
+      abi: MaxionNFTMarketplace
+      startBlock: 31584635
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Paused
+        - RoleAdminChanged
+        - RoleGranted
+        - RoleRevoked
+        - SetFeePercent
+        - SetMinimumTradePrice
+        - SetTotalFeePercent
+        - Sold
+        - Unpaused
+      abis:
+        - name: MaxionNFTMarketplace
+          file: ./abis/MaxionNFTMarketplace.json
+      eventHandlers:
+        - event: Paused(address)
+          handler: handlePaused
+        - event: RoleAdminChanged(indexed bytes32,indexed bytes32,indexed bytes32)
+          handler: handleRoleAdminChanged
+        - event: RoleGranted(indexed bytes32,indexed address,indexed address)
+          handler: handleRoleGranted
+        - event: RoleRevoked(indexed bytes32,indexed address,indexed address)
+          handler: handleRoleRevoked
+        - event: SetFeePercent(uint256,uint256)
+          handler: handleSetFeePercent
+        - event: SetMinimumTradePrice(uint256)
+          handler: handleSetMinimumTradePrice
+        - event: SetTotalFeePercent(uint256)
+          handler: handleSetTotalFeePercent
+        - event: Sold(indexed address,indexed address,uint256,uint256,uint256,uint256,bool)
+          handler: handleSold
+        - event: Unpaused(address)
+          handler: handleUnpaused
+      file: ./src/maxion-nft-marketplace.ts
