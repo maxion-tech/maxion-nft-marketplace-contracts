@@ -1,8 +1,6 @@
+import { BigDecimal, BigInt } from "@graphprotocol/graph-ts"
 import {
   Paused as PausedEvent,
-  RoleAdminChanged as RoleAdminChangedEvent,
-  RoleGranted as RoleGrantedEvent,
-  RoleRevoked as RoleRevokedEvent,
   SetFeePercent as SetFeePercentEvent,
   SetMinimumTradePrice as SetMinimumTradePriceEvent,
   SetTotalFeePercent as SetTotalFeePercentEvent,
@@ -10,145 +8,172 @@ import {
   Unpaused as UnpausedEvent
 } from "../generated/MaxionNFTMarketplace/MaxionNFTMarketplace"
 import {
-  Paused,
-  RoleAdminChanged,
-  RoleGranted,
-  RoleRevoked,
-  SetFeePercent,
-  SetMinimumTradePrice,
-  SetTotalFeePercent,
-  Sold,
-  Unpaused
+  Marketplace,
+  Transaction,
+  TransactionDayData,
+  TransactionHourData,
+  TransactionMonthData,
 } from "../generated/schema"
 
-export function handlePaused(event: PausedEvent): void {
-  let entity = new Paused(
+export const NFT_MARKETPLACE_ID = "1"
+export const DECIMALS = BigDecimal.fromString("1000000000000000000")
+export const FEE_DENOMINATOR = BigDecimal.fromString("100000000")
+
+export function handleSold(event: SoldEvent): void {
+  const marketplace = loadMarketplace()
+  let transaction = new Transaction(
     event.transaction.hash.concatI32(event.logIndex.toI32())
   )
-  entity.account = event.params.account
+  transaction.seller = event.params.seller
+  transaction.buyer = event.params.buyer
+  transaction.tokenId = event.params.tokenId
+  transaction.amount = event.params.amount.toBigDecimal().div(DECIMALS)
+  transaction.price = event.params.price.toBigDecimal().div(DECIMALS)
+  transaction.priceAfterFee = event.params.priceAfterFee.toBigDecimal().div(DECIMALS)
+  transaction.platformFeePercent = marketplace.platformFeePercent.toBigDecimal()
+  transaction.partnerFeePercent = marketplace.partnerFeePercent.toBigDecimal()
+  transaction.totalFee = transaction.price.minus(transaction.priceAfterFee)
+  transaction.totalFeePercent = marketplace.totalFeePercent.toBigDecimal()
+  transaction.platformFeeAmount = transaction.totalFee.times(marketplace.platformFeePercent.toBigDecimal()).div(BigDecimal.fromString("100.00"))
+  transaction.partnerFeeAmount = transaction.totalFee.times(marketplace.partnerFeePercent.toBigDecimal()).div(BigDecimal.fromString("100.00"))
 
-  entity.blockNumber = event.block.number
-  entity.blockTimestamp = event.block.timestamp
-  entity.transactionHash = event.transaction.hash
+  transaction.isBuyLimit = event.params.isBuyLimit
 
-  entity.save()
+  transaction.blockNumber = event.block.number
+  transaction.blockTimestamp = event.block.timestamp
+  transaction.transactionHash = event.transaction.hash
+
+  transaction.save()
+
+  updateTransactionHourData(event, marketplace)
+  updateTransactionDayData(event, marketplace)
+  updateTransactionMonthData(event, marketplace)
 }
 
-export function handleRoleAdminChanged(event: RoleAdminChangedEvent): void {
-  let entity = new RoleAdminChanged(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  )
-  entity.role = event.params.role
-  entity.previousAdminRole = event.params.previousAdminRole
-  entity.newAdminRole = event.params.newAdminRole
+function updateTransactionHourData(event: SoldEvent, marketplace: Marketplace): void {
+  let hourStartTimestamp = event.block.timestamp.div(BigInt.fromI32(3600)).times(BigInt.fromI32(3600))
+  let transactionHourData = TransactionHourData.load(hourStartTimestamp.toString())
 
-  entity.blockNumber = event.block.number
-  entity.blockTimestamp = event.block.timestamp
-  entity.transactionHash = event.transaction.hash
+  if (transactionHourData == null) {
+    transactionHourData = new TransactionHourData(hourStartTimestamp.toString())
+    transactionHourData.startUnixTime = hourStartTimestamp
+    transactionHourData.totalAmount = BigInt.fromI32(0)
+    transactionHourData.totalPrice = BigDecimal.fromString("0")
+    transactionHourData.totalPriceAfterFee = BigDecimal.fromString("0")
+    transactionHourData.totalPlatformFee = BigDecimal.fromString("0")
+    transactionHourData.totalPartnerFee = BigDecimal.fromString("0")
+    transactionHourData.totalFee = BigDecimal.fromString("0")
+    transactionHourData.totalTransaction = BigInt.fromI32(0)
+  }
 
-  entity.save()
+  transactionHourData.totalAmount = transactionHourData.totalAmount.plus(event.params.amount)
+  transactionHourData.totalPrice = transactionHourData.totalPrice.plus(event.params.price.toBigDecimal().div(DECIMALS))
+  transactionHourData.totalPriceAfterFee = transactionHourData.totalPriceAfterFee.plus(event.params.priceAfterFee.toBigDecimal().div(DECIMALS))
+  transactionHourData.totalFee = transactionHourData.totalPrice.minus(transactionHourData.totalPriceAfterFee)
+  transactionHourData.totalPlatformFee = transactionHourData.totalFee.times(marketplace.platformFeePercent.toBigDecimal()).div(BigDecimal.fromString("100.00"))
+  transactionHourData.totalPartnerFee = transactionHourData.totalFee.times(marketplace.partnerFeePercent.toBigDecimal()).div(BigDecimal.fromString("100.00"))
+  transactionHourData.totalTransaction = transactionHourData.totalTransaction.plus(BigInt.fromI32(1))
+
+  transactionHourData.save()
 }
 
-export function handleRoleGranted(event: RoleGrantedEvent): void {
-  let entity = new RoleGranted(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  )
-  entity.role = event.params.role
-  entity.account = event.params.account
-  entity.sender = event.params.sender
+function updateTransactionDayData(event: SoldEvent, marketplace: Marketplace): void {
+  let dayStartTimestamp = event.block.timestamp.div(BigInt.fromI32(86400)).times(BigInt.fromI32(86400))
+  let transactionDayData = TransactionDayData.load(dayStartTimestamp.toString())
 
-  entity.blockNumber = event.block.number
-  entity.blockTimestamp = event.block.timestamp
-  entity.transactionHash = event.transaction.hash
+  if (transactionDayData == null) {
+    transactionDayData = new TransactionDayData(dayStartTimestamp.toString())
+    transactionDayData.startUnixTime = dayStartTimestamp
+    transactionDayData.totalAmount = BigInt.fromI32(0)
+    transactionDayData.totalPrice = BigDecimal.fromString("0")
+    transactionDayData.totalPriceAfterFee = BigDecimal.fromString("0")
+    transactionDayData.totalPlatformFee = BigDecimal.fromString("0")
+    transactionDayData.totalPartnerFee = BigDecimal.fromString("0")
+    transactionDayData.totalFee = BigDecimal.fromString("0")
+    transactionDayData.totalTransaction = BigInt.fromI32(0)
+  }
 
-  entity.save()
+  transactionDayData.totalAmount = transactionDayData.totalAmount.plus(event.params.amount)
+  transactionDayData.totalPrice = transactionDayData.totalPrice.plus(event.params.price.toBigDecimal().div(DECIMALS))
+  transactionDayData.totalPriceAfterFee = transactionDayData.totalPriceAfterFee.plus(event.params.priceAfterFee.toBigDecimal().div(DECIMALS))
+
+  transactionDayData.totalFee = transactionDayData.totalPrice.minus(transactionDayData.totalPriceAfterFee)
+  transactionDayData.totalPlatformFee = transactionDayData.totalFee.times(marketplace.platformFeePercent.toBigDecimal()).div(BigDecimal.fromString("100.00"))
+  transactionDayData.totalPartnerFee = transactionDayData.totalFee.times(marketplace.partnerFeePercent.toBigDecimal()).div(BigDecimal.fromString("100.00"))
+  transactionDayData.totalTransaction = transactionDayData.totalTransaction.plus(BigInt.fromI32(1))
+
+  transactionDayData.save()
 }
 
-export function handleRoleRevoked(event: RoleRevokedEvent): void {
-  let entity = new RoleRevoked(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  )
-  entity.role = event.params.role
-  entity.account = event.params.account
-  entity.sender = event.params.sender
+function updateTransactionMonthData(event: SoldEvent, marketplace: Marketplace): void {
+  let monthStartTimestamp = event.block.timestamp.div(BigInt.fromI32(2592000)).times(BigInt.fromI32(2592000))
+  let transactionMonthData = TransactionMonthData.load(monthStartTimestamp.toString())
 
-  entity.blockNumber = event.block.number
-  entity.blockTimestamp = event.block.timestamp
-  entity.transactionHash = event.transaction.hash
+  if (transactionMonthData == null) {
+    transactionMonthData = new TransactionMonthData(monthStartTimestamp.toString())
+    transactionMonthData.startUnixTime = monthStartTimestamp
+    transactionMonthData.totalAmount = BigInt.fromI32(0)
+    transactionMonthData.totalPrice = BigDecimal.fromString("0")
+    transactionMonthData.totalPriceAfterFee = BigDecimal.fromString("0")
+    transactionMonthData.totalPlatformFee = BigDecimal.fromString("0")
+    transactionMonthData.totalPartnerFee = BigDecimal.fromString("0")
+    transactionMonthData.totalFee = BigDecimal.fromString("0")
+    transactionMonthData.totalTransaction = BigInt.fromI32(0)
+  }
 
-  entity.save()
+  transactionMonthData.totalAmount = transactionMonthData.totalAmount.plus(event.params.amount)
+  transactionMonthData.totalPrice = transactionMonthData.totalPrice.plus(event.params.price.toBigDecimal().div(DECIMALS))
+  transactionMonthData.totalPriceAfterFee = transactionMonthData.totalPriceAfterFee.plus(event.params.priceAfterFee.toBigDecimal().div(DECIMALS))
+  transactionMonthData.totalFee = transactionMonthData.totalPrice.minus(transactionMonthData.totalPriceAfterFee)
+  transactionMonthData.totalPlatformFee = transactionMonthData.totalFee.times(marketplace.platformFeePercent.toBigDecimal()).div(BigDecimal.fromString("100.00"))
+  transactionMonthData.totalPartnerFee = transactionMonthData.totalFee.times(marketplace.partnerFeePercent.toBigDecimal()).div(BigDecimal.fromString("100.00"))
+  transactionMonthData.totalTransaction = transactionMonthData.totalTransaction.plus(BigInt.fromI32(1))
+
+  transactionMonthData.save()
 }
 
-export function handleSetFeePercent(event: SetFeePercentEvent): void {
-  let entity = new SetFeePercent(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  )
-  entity.newPlatformFeePercent = event.params.newPlatformFeePercent
-  entity.newPartnerFeePercent = event.params.newPartnerFeePercent
-
-  entity.blockNumber = event.block.number
-  entity.blockTimestamp = event.block.timestamp
-  entity.transactionHash = event.transaction.hash
-
-  entity.save()
+function loadMarketplace(): Marketplace {
+  let marketplace = Marketplace.load(NFT_MARKETPLACE_ID)
+  if (marketplace == null) {
+    marketplace = new Marketplace(NFT_MARKETPLACE_ID)
+    marketplace.totalFeePercent = BigInt.fromI32(0)
+    marketplace.minimumTradePrice = BigInt.fromI32(0)
+    marketplace.platformFeePercent = BigInt.fromI32(0)
+    marketplace.partnerFeePercent = BigInt.fromI32(0)
+    marketplace.paused = false
+  }
+  return marketplace
 }
 
 export function handleSetMinimumTradePrice(
   event: SetMinimumTradePriceEvent
 ): void {
-  let entity = new SetMinimumTradePrice(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  )
-  entity.newMinimumTradePrice = event.params.newMinimumTradePrice
-
-  entity.blockNumber = event.block.number
-  entity.blockTimestamp = event.block.timestamp
-  entity.transactionHash = event.transaction.hash
-
-  entity.save()
+  const marketplace = loadMarketplace()
+  marketplace.minimumTradePrice = event.params.newMinimumTradePrice
+  marketplace.save()
 }
 
 export function handleSetTotalFeePercent(event: SetTotalFeePercentEvent): void {
-  let entity = new SetTotalFeePercent(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  )
-  entity.newTotalFeePercent = event.params.newTotalFeePercent
-
-  entity.blockNumber = event.block.number
-  entity.blockTimestamp = event.block.timestamp
-  entity.transactionHash = event.transaction.hash
-
-  entity.save()
+  const marketplace = loadMarketplace()
+  marketplace.totalFeePercent = event.params.newTotalFeePercent
+  marketplace.save()
 }
 
-export function handleSold(event: SoldEvent): void {
-  let entity = new Sold(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  )
-  entity.seller = event.params.seller
-  entity.buyer = event.params.buyer
-  entity.tokenId = event.params.tokenId
-  entity.amount = event.params.amount
-  entity.price = event.params.price
-  entity.priceAfterFee = event.params.priceAfterFee
-  entity.isBuyLimit = event.params.isBuyLimit
+export function handlePaused(event: PausedEvent): void {
+  const marketplace = loadMarketplace()
+  marketplace.paused = true
+  marketplace.save()
+}
 
-  entity.blockNumber = event.block.number
-  entity.blockTimestamp = event.block.timestamp
-  entity.transactionHash = event.transaction.hash
-
-  entity.save()
+export function handleSetFeePercent(event: SetFeePercentEvent): void {
+  const marketplace = loadMarketplace()
+  marketplace.platformFeePercent = event.params.newPlatformFeePercent
+  marketplace.partnerFeePercent = event.params.newPartnerFeePercent
+  marketplace.save()
 }
 
 export function handleUnpaused(event: UnpausedEvent): void {
-  let entity = new Unpaused(
-    event.transaction.hash.concatI32(event.logIndex.toI32())
-  )
-  entity.account = event.params.account
-
-  entity.blockNumber = event.block.number
-  entity.blockTimestamp = event.block.timestamp
-  entity.transactionHash = event.transaction.hash
-
-  entity.save()
+  const marketplace = loadMarketplace()
+  marketplace.paused = false
+  marketplace.save()
 }

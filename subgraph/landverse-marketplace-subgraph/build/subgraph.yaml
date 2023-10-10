@@ -1,6 +1,6 @@
 specVersion: 0.0.5
 schema:
-  file: ./schema.graphql
+  file: schema.graphql
 dataSources:
   - kind: ethereum
     name: MaxionNFTMarketplace
@@ -25,7 +25,7 @@ dataSources:
         - Unpaused
       abis:
         - name: MaxionNFTMarketplace
-          file: ./abis/MaxionNFTMarketplace.json
+          file: MaxionNFTMarketplace/abis/MaxionNFTMarketplace.json
       eventHandlers:
         - event: Paused(address)
           handler: handlePaused
@@ -39,4 +39,4 @@ dataSources:
           handler: handleSold
         - event: Unpaused(address)
           handler: handleUnpaused
-      file: ./src/maxion-nft-marketplace.ts
+      file: MaxionNFTMarketplace/MaxionNFTMarketplace.wasm
