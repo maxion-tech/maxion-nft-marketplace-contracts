@@ -8,7 +8,6 @@ import "@openzeppelin/contracts/access/AccessControl.sol"; // Provides role-base
 import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol"; // Makes the contract ERC1155 compatible.
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol"; // Interface for ERC1155 NFTs.
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol"; // Safe methods to interact with ERC20 tokens.
-import "hardhat/console.sol"; // Hardhat console logging.
 
 /// @custom:security-contact dev@maxion.tech
 contract MaxionNFTMarketplaceV2 is Pausable, AccessControl, ERC1155Holder {
