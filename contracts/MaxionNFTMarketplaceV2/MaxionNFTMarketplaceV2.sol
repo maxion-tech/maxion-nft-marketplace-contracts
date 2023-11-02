@@ -53,6 +53,7 @@ contract MaxionNFTMarketplaceV2 is Pausable, AccessControl, ERC1155Holder {
         uint256 tokenId,
         uint256 amount,
         uint256 price,
+        uint256 netAmount, // is old priceAfterFee
         uint256 percentageFeeAmount,
         uint256 fixedFeeAmount,
         bool isBuyLimit
@@ -189,6 +190,7 @@ contract MaxionNFTMarketplaceV2 is Pausable, AccessControl, ERC1155Holder {
             tokenId,
             amount,
             price,
+            netAmount,
             percentageFee,
             fixedFee,
             isBuyLimit
