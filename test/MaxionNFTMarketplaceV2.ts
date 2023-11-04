@@ -225,8 +225,6 @@ describe("NFT Marketplace V2 test", function () {
       amountToSell: number,
       amountToBuy: number
     }) => {
-      console.log("tradeData", tradeData);
-
       const { nftMarketplace, currencyToken, nft, buyer, seller, platformTreasuryWallet, tradingFeeWallet, tradeHandler, fixedFee } = await deployFixture();
 
       const { totalPrice, percentageFee, totalFee, netAmount } = await nftMarketplace.calculateTradeDetails(tradeData.price, tradeData.amountToBuy);
