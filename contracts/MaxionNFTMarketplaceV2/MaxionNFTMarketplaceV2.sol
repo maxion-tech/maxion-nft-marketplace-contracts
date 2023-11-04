@@ -32,8 +32,8 @@ contract MaxionNFTMarketplaceV2 is Pausable, AccessControl, ERC1155Holder {
     IERC1155 public nft; // ERC1155 NFT contract.
 
     // Beneficiaries of fees.
-    address public partner;
-    address public platformTreasury;
+    address public tradingFeeWallet;
+    address public platformTreasuryWallet;
 
     // Struct to define trade data.
     struct TradeData {
@@ -62,8 +62,8 @@ contract MaxionNFTMarketplaceV2 is Pausable, AccessControl, ERC1155Holder {
     constructor(
         address nftAddress,
         address currencyAddress,
-        address platformTreasuryAddress,
-        address partnerAddress,
+        address platformTreasuryWalletAddress,
+        address tradingFeeWalletAddress,
         uint256 initialFeePercentage,
         uint256 initialFixedFee,
         uint256 initialMinimumTradePrice,
@@ -72,10 +72,10 @@ contract MaxionNFTMarketplaceV2 is Pausable, AccessControl, ERC1155Holder {
         // Initial setup checks.
         require(currencyAddress != address(0), "Invalid currency address");
         require(
-            platformTreasuryAddress != address(0),
+            platformTreasuryWalletAddress != address(0),
             "Invalid treasury address"
         );
-        require(partnerAddress != address(0), "Invalid partner address");
+        require(tradingFeeWalletAddress != address(0), "Invalid trading fee wallet address");
         require(
             admin != address(0) && admin != msg.sender,
             "Invalid admin address"
@@ -89,8 +89,8 @@ contract MaxionNFTMarketplaceV2 is Pausable, AccessControl, ERC1155Holder {
         // Initializing contract variables.
         nft = IERC1155(nftAddress);
         currencyContract = IERC20(currencyAddress);
-        platformTreasury = platformTreasuryAddress;
-        partner = partnerAddress;
+        platformTreasuryWallet = platformTreasuryWalletAddress;
+        tradingFeeWallet = tradingFeeWalletAddress;
         feePercentage = initialFeePercentage;
         fixedFee = initialFixedFee;
         minimumTradePrice = initialMinimumTradePrice;
@@ -196,11 +196,12 @@ contract MaxionNFTMarketplaceV2 is Pausable, AccessControl, ERC1155Holder {
             isBuyLimit
         );
 
+        // 100% - 89% - 10% - 1% = 0%
         // Transferring NFT and currency.
-        nft.safeTransferFrom(seller, buyer, tokenId, amount, "");
-        currencyContract.safeTransferFrom(buyer, seller, netAmount);
-        currencyContract.safeTransferFrom(buyer, platformTreasury, fixedFee);
-        currencyContract.safeTransferFrom(buyer, partner, percentageFee);
+        nft.safeTransferFrom(seller, buyer, tokenId, amount, "0x0");
+        currencyContract.safeTransferFrom(buyer, seller, netAmount); // 89
+        currencyContract.safeTransferFrom(buyer, tradingFeeWallet, percentageFee); // 10
+        currencyContract.safeTransferFrom(buyer, platformTreasuryWallet, fixedFee); //1
     }
 
     // Update fee parameters.

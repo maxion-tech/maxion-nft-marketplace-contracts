@@ -12,7 +12,7 @@ describe("NFT Marketplace V2 test", function () {
 
   async function deployFixture() {
     // Contracts are deployed using the first signer/account by default
-    const [owner, admin, parameterSetter, platformTreasury, partner, seller, buyer, tradeHandler] = await ethers.getSigners();
+    const [owner, admin, parameterSetter, platformTreasuryWallet, tradingFeeWallet, seller, buyer, tradeHandler] = await ethers.getSigners();
     const minimumTradePrice = utils.parseEther("5");
 
     const feePercentage = "1000000000"; // 10%*10**8 (10**18-10**10) // 10%
@@ -35,10 +35,10 @@ describe("NFT Marketplace V2 test", function () {
 
     const nftMarketplace = await NFTMarketplace.deploy(nft.address, // NFT address
       currencyToken.address, // Currency token address
-      platformTreasury.address, // Platform treasury wallet addfress
-      partner.address, // Partner wallet address
-      feePercentage, // Partner fee
-      fixedFee, // Platform fee,
+      platformTreasuryWallet.address, // Platform treasury wallet addfress
+      tradingFeeWallet.address, // Trading fee wallet address
+      feePercentage, // Trading fee
+      fixedFee, // Platform tresury fee,
       minimumTradePrice, // Minimum trade price
       admin.address); // Admin address
 
@@ -61,8 +61,8 @@ describe("NFT Marketplace V2 test", function () {
       owner,
       admin,
       parameterSetter,
-      platformTreasury,
-      partner,
+      platformTreasuryWallet,
+      tradingFeeWallet,
       seller,
       buyer,
       tradeHandler,
@@ -126,11 +126,11 @@ describe("NFT Marketplace V2 test", function () {
     it("Wallet address must be correct", async () => {
       const {
         nftMarketplace,
-        platformTreasury,
-        partner,
+        platformTreasuryWallet,
+        tradingFeeWallet,
       } = await deployFixture();
-      expect(await nftMarketplace.platformTreasury()).to.be.eq(platformTreasury.address);
-      expect(await nftMarketplace.partner()).to.be.eq(partner.address);
+      expect(await nftMarketplace.platformTreasuryWallet()).to.be.eq(platformTreasuryWallet.address);
+      expect(await nftMarketplace.tradingFeeWallet()).to.be.eq(tradingFeeWallet.address);
     });
   });
 
@@ -185,7 +185,7 @@ describe("NFT Marketplace V2 test", function () {
     * 5) Check mininum trade price
     */
     it("Must error validation not pass tradable modifier", async () => {
-      const { nftMarketplace, currencyToken, nft, parameterSetter, buyer, seller, platformTreasury, partner, tradeHandler } = await deployFixture();
+      const { nftMarketplace, currencyToken, nft, parameterSetter, buyer, seller, platformTreasuryWallet, tradingFeeWallet, tradeHandler } = await deployFixture();
 
       // Check seller insufficient NFT amount
       await expect(nftMarketplace.connect(tradeHandler).trade(seller.address, buyer.address, 1, 1, utils.parseEther("100"), false)).to.be.revertedWith("Seller insufficient NFT amount");
@@ -222,10 +222,12 @@ describe("NFT Marketplace V2 test", function () {
     const tradeTest = async (tradeData: {
       nftId: number,
       price: BigNumber,
-      amountToSell: BigNumber,
-      amountToBuy: BigNumber
+      amountToSell: number,
+      amountToBuy: number
     }) => {
-      const { nftMarketplace, currencyToken, nft, buyer, seller, platformTreasury, partner, tradeHandler, fixedFee } = await deployFixture();
+      console.log("tradeData", tradeData);
+
+      const { nftMarketplace, currencyToken, nft, buyer, seller, platformTreasuryWallet, tradingFeeWallet, tradeHandler, fixedFee } = await deployFixture();
 
       const { totalPrice, percentageFee, totalFee, netAmount } = await nftMarketplace.calculateTradeDetails(tradeData.price, tradeData.amountToBuy);
 
@@ -244,26 +246,34 @@ describe("NFT Marketplace V2 test", function () {
 
       expect(await currencyToken.balanceOf(buyer.address)).to.be.eq(constants.Zero);
       expect(await currencyToken.balanceOf(seller.address)).to.be.eq(netAmount);
-      expect(await currencyToken.balanceOf(platformTreasury.address)).to.be.eq(fixedFee);
-      expect(await currencyToken.balanceOf(partner.address)).to.be.eq(percentageFee);
+      expect(await currencyToken.balanceOf(platformTreasuryWallet.address)).to.be.eq(fixedFee);
+      expect(await currencyToken.balanceOf(tradingFeeWallet.address)).to.be.eq(percentageFee);
 
-      const amountLeft = tradeData.amountToSell.sub(tradeData.amountToBuy);
+      const amountLeft = tradeData.amountToSell - tradeData.amountToBuy;
       expect(await nft.balanceOf(seller.address, tradeData.nftId)).to.be.eq(amountLeft);
       expect(await nft.balanceOf(buyer.address, tradeData.nftId)).to.be.eq(tradeData.amountToBuy);
     }
 
+    it("Can trade price of 100", async () => {
+      await tradeTest({
+        nftId: _.random(1, 100_000_000),
+        price: utils.parseEther((100).toString()),
+        amountToSell: 1,
+        amountToBuy: 1,
+      });
+    });
+
     it("Can trade 20 times with random data", async (numberOfTest: number = 20) => {
       for (let index = 0; index < numberOfTest; index++) {
-        const amountToSell = utils.parseEther(_.random(1, 100_000_000).toString());
+        const amountToSell = _.random(1, 100_000_000);
         await tradeTest({
           nftId: _.random(1, 100_000_000),
           price: utils.parseEther(_.random(1, 100_000_000).toString()),
           amountToSell: amountToSell,
-          amountToBuy: utils.parseEther(_.random(1, Number(ethers.utils.formatEther(amountToSell))).toString())
+          amountToBuy: _.random(1, amountToSell)
         });
       }
     });
   });
-
 
 });
