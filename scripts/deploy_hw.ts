@@ -1,25 +1,11 @@
 import hre, { ethers } from "hardhat";
 import { utils } from "ethers";
-import { LedgerSigner } from "@ethersproject/hardware-wallets";
 
 async function main() {
   // Environment variable validation
   const { NFT_ADDRESS, CURRENCY_TOKEN_ADDRESS, PLATFORM_TREASURY_ADDRESS, PARTNER_ADDRESS, ADMIN_ADDRESS } = process.env;
 
   if (!NFT_ADDRESS || !CURRENCY_TOKEN_ADDRESS || !PLATFORM_TREASURY_ADDRESS || !PARTNER_ADDRESS || !ADMIN_ADDRESS) throw new Error("Environment variable not valid");
-
-  const networkUrl = (hre.network.config as any).url;
-
-  if (!networkUrl) throw new Error("Please make sure all environment variable is loaded");
-
-  const provider = new ethers.providers.JsonRpcProvider(networkUrl);
-  const type = 'hid';
-  const path = `m/44'/60'/0'/0/0`;
-  const signer = new LedgerSigner(provider, type, path);
-
-  const address = await signer.getAddress();
-
-  console.log(`Deploying from ${address}`);
 
   const totalFeePercent = "2000000000"; // 10%*10**8 (10**18-10**10) // Total fee 10%
   const platformFeePercent = "5000000000"; // 60%*10**8 (10**18-10**10)
@@ -28,7 +14,6 @@ async function main() {
 
   const NFTMarketplace = await ethers.getContractFactory(
     "MaxionNFTMarketplace",
-    signer,
   );
 
   const nftMarketplace = await NFTMarketplace.deploy(

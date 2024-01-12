@@ -5,11 +5,12 @@
     "test": "hardhat test",
     "deploy:bsc-testnet": "hardhat run scripts/deploy.ts --network bscTestnet",
     "deploy:bsc-testnet:hw": "source .env.testnet && hardhat run scripts/deploy_hw.ts --network bscTestnet",
-    "deploy:bsc-mainnet:hw": "source .env && hardhat run scripts/deploy_hw.ts --network bsc"
+    "deploy:v2:bsc-testnet:hw": "source .env.testnet && hardhat run scripts/deploy_v2_hw.ts --network bscTestnetHW",
+    "deploy:bsc-mainnet:hw": "source .env && hardhat run scripts/deploy_hw.ts --network bscMainnetHW"
   },
   "devDependencies": {
     "@ethersproject/hardware-wallets": "^5.7.0",
-    "@ledgerhq/hw-transport-node-hid": "^6.27.16",
+    "@nomicfoundation/hardhat-ledger": "^1.0.1",
     "@nomicfoundation/hardhat-toolbox": "^1.0.2",
     "@openzeppelin/contracts": "^4.9.3",
     "@openzeppelin/contracts-upgradeable": "^4.7.3",
