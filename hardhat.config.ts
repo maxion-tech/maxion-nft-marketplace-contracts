@@ -15,7 +15,7 @@ const config: HardhatUserConfig = {
       chainId: 97,
       url: process.env.BSC_TESTNET_URL || "https://data-seed-prebsc-1-s1.binance.org:8545/",
       ledgerAccounts: process.env.LEDGER_ACCOUNT ? [process.env.LEDGER_ACCOUNT] : [],
-      // gasPrice: 470000000000,
+      gasPrice: 10000000000,
     },
     bscMainnet: {
       chainId: 56,

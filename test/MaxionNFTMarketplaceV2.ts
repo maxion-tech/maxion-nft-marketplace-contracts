@@ -12,7 +12,7 @@ describe("NFT Marketplace V2 test", function () {
 
   async function deployFixture() {
     // Contracts are deployed using the first signer/account by default
-    const [owner, admin, parameterSetter, platformTreasuryWallet, tradingFeeWallet, seller, buyer, tradeHandler] = await ethers.getSigners();
+    const [owner, admin, parameterSetter, platformTreasuryWallet, tradingFeeWallet, seller, buyer, receiver, tradeHandler] = await ethers.getSigners();
     const minimumTradePrice = utils.parseEther("3");
 
     const feePercentage = "1000000000"; // 10%*10**8 (10**18-10**10) // 10%
@@ -65,6 +65,7 @@ describe("NFT Marketplace V2 test", function () {
       tradingFeeWallet,
       seller,
       buyer,
+      receiver,
       tradeHandler,
       feePercentage,
       fixedFee,
@@ -188,35 +189,35 @@ describe("NFT Marketplace V2 test", function () {
       const { nftMarketplace, currencyToken, nft, parameterSetter, buyer, seller, platformTreasuryWallet, tradingFeeWallet, tradeHandler } = await deployFixture();
 
       // Check seller insufficient NFT amount
-      await expect(nftMarketplace.connect(tradeHandler).trade(seller.address, buyer.address, 1, 1, utils.parseEther("100"), false)).to.be.revertedWith("Seller insufficient NFT amount");
+      await expect(nftMarketplace.connect(tradeHandler).trade(seller.address, buyer.address, buyer.address, 1, 1, utils.parseEther("100"), false)).to.be.revertedWith("Seller insufficient NFT amount");
 
       // Mint NFT to seller
       await nft.mint(seller.address, 1, 1, constants.HashZero);
 
       // Check seller does not approve NFT yet
-      await expect(nftMarketplace.connect(tradeHandler).trade(seller.address, buyer.address, 1, 1, utils.parseEther("100"), false)).to.be.revertedWith("Seller does not approve NFT yet");
+      await expect(nftMarketplace.connect(tradeHandler).trade(seller.address, buyer.address, buyer.address, 1, 1, utils.parseEther("100"), false)).to.be.revertedWith("Seller does not approve NFT yet");
 
       // Seller approve NFT to marketplace
       await nft.connect(seller).setApprovalForAll(nftMarketplace.address, true);
 
       // Check Buyer insufficient allowance
-      await expect(nftMarketplace.connect(tradeHandler).trade(seller.address, buyer.address, 1, 1, utils.parseEther("100"), false)).to.be.revertedWith("Buyer insufficient allowance");
+      await expect(nftMarketplace.connect(tradeHandler).trade(seller.address, buyer.address, buyer.address, 1, 1, utils.parseEther("100"), false)).to.be.revertedWith("Buyer insufficient allowance");
 
       await currencyToken.connect(buyer).approve(nftMarketplace.address, constants.MaxUint256);
 
       // Check buyer insufficient balance
-      await expect(nftMarketplace.connect(tradeHandler).trade(seller.address, buyer.address, 1, 1, utils.parseEther("100"), false)).to.be.revertedWith("Buyer insufficient balance");
+      await expect(nftMarketplace.connect(tradeHandler).trade(seller.address, buyer.address, buyer.address, 1, 1, utils.parseEther("100"), false)).to.be.revertedWith("Buyer insufficient balance");
 
       // Mint currency token to buyer
       await currencyToken.mint(buyer.address, utils.parseEther("100"));
 
       // Check mininum trade price
       await nftMarketplace.connect(parameterSetter).setMinimumTradePrice(utils.parseEther("1000"));
-      await expect(nftMarketplace.connect(tradeHandler).trade(seller.address, buyer.address, 1, 1, utils.parseEther("100"), false)).to.be.revertedWith("Total price must be >= minimum trade price");
+      await expect(nftMarketplace.connect(tradeHandler).trade(seller.address, buyer.address, buyer.address, 1, 1, utils.parseEther("100"), false)).to.be.revertedWith("Total price must be >= minimum trade price");
       await nftMarketplace.connect(parameterSetter).setMinimumTradePrice(utils.parseEther("100"));
 
       // All operation pass
-      await nftMarketplace.connect(tradeHandler).trade(seller.address, buyer.address, 1, 1, utils.parseEther("100"), false);
+      await nftMarketplace.connect(tradeHandler).trade(seller.address, buyer.address, buyer.address, 1, 1, utils.parseEther("100"), false);
     });
 
     const tradeTest = async (tradeData: {
@@ -240,7 +241,7 @@ describe("NFT Marketplace V2 test", function () {
 
       // Seller approve NFT to marketplace
       await nft.connect(seller).setApprovalForAll(nftMarketplace.address, true);
-      await nftMarketplace.connect(tradeHandler).trade(seller.address, buyer.address, tradeData.nftId, tradeData.amountToBuy, tradeData.price, false);
+      await nftMarketplace.connect(tradeHandler).trade(seller.address, buyer.address, buyer.address, tradeData.nftId, tradeData.amountToBuy, tradeData.price, false);
 
       expect(await currencyToken.balanceOf(buyer.address)).to.be.eq(constants.Zero);
       expect(await currencyToken.balanceOf(seller.address)).to.be.eq(netAmount);
@@ -252,8 +253,50 @@ describe("NFT Marketplace V2 test", function () {
       expect(await nft.balanceOf(buyer.address, tradeData.nftId)).to.be.eq(tradeData.amountToBuy);
     }
 
+    const tradeTestWithSentTo = async (tradeData: {
+      nftId: number,
+      price: BigNumber,
+      amountToSell: number,
+      amountToBuy: number,
+    }) => {
+      const { nftMarketplace, currencyToken, nft, buyer, seller, receiver, platformTreasuryWallet, tradingFeeWallet, tradeHandler, fixedFee } = await deployFixture();
+
+      const { totalPrice, percentageFee, totalFee, netAmount } = await nftMarketplace.calculateTradeDetails(tradeData.price, tradeData.amountToBuy);
+
+      // Mint currency token to buyer
+      await currencyToken.mint(buyer.address, tradeData.price.mul(tradeData.amountToBuy));
+
+      // Mint NFT to seller
+      await nft.mint(seller.address, tradeData.nftId, tradeData.amountToSell, constants.HashZero);
+
+      // Buyer approve currency token to marketplace
+      await currencyToken.connect(buyer).approve(nftMarketplace.address, constants.MaxUint256);
+
+      // Seller approve NFT to marketplace
+      await nft.connect(seller).setApprovalForAll(nftMarketplace.address, true);
+      await nftMarketplace.connect(tradeHandler).trade(seller.address, buyer.address, receiver.address, tradeData.nftId, tradeData.amountToBuy, tradeData.price, false);
+
+      expect(await currencyToken.balanceOf(buyer.address)).to.be.eq(constants.Zero);
+      expect(await currencyToken.balanceOf(seller.address)).to.be.eq(netAmount);
+      expect(await currencyToken.balanceOf(platformTreasuryWallet.address)).to.be.eq(fixedFee);
+      expect(await currencyToken.balanceOf(tradingFeeWallet.address)).to.be.eq(percentageFee);
+
+      const amountLeft = tradeData.amountToSell - tradeData.amountToBuy;
+      expect(await nft.balanceOf(seller.address, tradeData.nftId)).to.be.eq(amountLeft);
+      expect(await nft.balanceOf(receiver.address, tradeData.nftId)).to.be.eq(tradeData.amountToBuy);
+    }
+
     it("Can trade price of 100", async () => {
       await tradeTest({
+        nftId: _.random(1, 100_000_000),
+        price: utils.parseEther((100).toString()),
+        amountToSell: 1,
+        amountToBuy: 1,
+      });
+    });
+
+    it("Can trade price of 100 with sent to", async () => {
+      await tradeTestWithSentTo({
         nftId: _.random(1, 100_000_000),
         price: utils.parseEther((100).toString()),
         amountToSell: 1,
@@ -265,6 +308,18 @@ describe("NFT Marketplace V2 test", function () {
       for (let index = 0; index < numberOfTest; index++) {
         const amountToSell = _.random(1, 100_000_000);
         await tradeTest({
+          nftId: _.random(1, 100_000_000),
+          price: utils.parseEther(_.random(1, 100_000_000).toString()),
+          amountToSell: amountToSell,
+          amountToBuy: _.random(1, amountToSell)
+        });
+      }
+    });
+
+    it("Can trade 20 times with random data with sent to", async (numberOfTest: number = 20) => {
+      for (let index = 0; index < numberOfTest; index++) {
+        const amountToSell = _.random(1, 100_000_000);
+        await tradeTestWithSentTo({
           nftId: _.random(1, 100_000_000),
           price: utils.parseEther(_.random(1, 100_000_000).toString()),
           amountToSell: amountToSell,
