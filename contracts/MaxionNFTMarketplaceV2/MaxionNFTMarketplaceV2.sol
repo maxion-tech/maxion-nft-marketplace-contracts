@@ -50,6 +50,7 @@ contract MaxionNFTMarketplaceV2 is Pausable, AccessControl, ERC1155Holder {
     event Sold(
         address indexed seller,
         address indexed buyer,
+        address indexed nftTo,
         uint256 tokenId,
         uint256 amount,
         uint256 price,
@@ -75,7 +76,10 @@ contract MaxionNFTMarketplaceV2 is Pausable, AccessControl, ERC1155Holder {
             platformTreasuryWalletAddress != address(0),
             "Invalid treasury address"
         );
-        require(tradingFeeWalletAddress != address(0), "Invalid trading fee wallet address");
+        require(
+            tradingFeeWalletAddress != address(0),
+            "Invalid trading fee wallet address"
+        );
         require(
             admin != address(0) && admin != msg.sender,
             "Invalid admin address"
@@ -168,6 +172,7 @@ contract MaxionNFTMarketplaceV2 is Pausable, AccessControl, ERC1155Holder {
     function trade(
         address seller,
         address buyer,
+        address nftTo,
         uint256 tokenId,
         uint256 amount,
         uint256 price,
@@ -178,6 +183,16 @@ contract MaxionNFTMarketplaceV2 is Pausable, AccessControl, ERC1155Holder {
         onlyRole(TRADE_HANDLER_ROLE)
         tradable(TradeData(seller, buyer, tokenId, amount, price))
     {
+        require(nftTo != address(0), "Invalid nftTo address");
+        require(
+            nftTo != seller,
+            "nftTo address must not be the same as seller address"
+        );
+        require(
+            seller != buyer,
+            "Seller address must not be the same as buyer address"
+        );
+
         // Calculating the trade details.
         (, uint256 percentageFee, , uint256 netAmount) = calculateTradeDetails(
             price,
@@ -187,6 +202,7 @@ contract MaxionNFTMarketplaceV2 is Pausable, AccessControl, ERC1155Holder {
         emit Sold(
             seller,
             buyer,
+            nftTo,
             tokenId,
             amount,
             price,
@@ -198,10 +214,18 @@ contract MaxionNFTMarketplaceV2 is Pausable, AccessControl, ERC1155Holder {
 
         // 100% - 89% - 10% - 1% = 0%
         // Transferring NFT and currency.
-        nft.safeTransferFrom(seller, buyer, tokenId, amount, "0x0");
+        nft.safeTransferFrom(seller, nftTo, tokenId, amount, "0x0");
         currencyContract.safeTransferFrom(buyer, seller, netAmount); // 89
-        currencyContract.safeTransferFrom(buyer, tradingFeeWallet, percentageFee); // 10
-        currencyContract.safeTransferFrom(buyer, platformTreasuryWallet, fixedFee); //1
+        currencyContract.safeTransferFrom(
+            buyer,
+            tradingFeeWallet,
+            percentageFee
+        ); // 10
+        currencyContract.safeTransferFrom(
+            buyer,
+            platformTreasuryWallet,
+            fixedFee
+        ); //1
     }
 
     // Update fee parameters.
