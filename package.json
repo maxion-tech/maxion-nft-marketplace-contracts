@@ -6,6 +6,7 @@
     "deploy:bsc-testnet": "hardhat run scripts/deploy.ts --network bscTestnet",
     "deploy:bsc-testnet:hw": "source .env.testnet && hardhat run scripts/deploy_hw.ts --network bscTestnet",
     "deploy:v2:bsc-testnet:hw": "source .env.testnet && hardhat run scripts/deploy_v2_hw.ts --network bscTestnetHW",
+    "deploy:v2:bsc-mainnet:hw": "source .env && hardhat run scripts/deploy_v2_hw.ts --network bscMainnetHW",
     "deploy:bsc-mainnet:hw": "source .env && hardhat run scripts/deploy_hw.ts --network bscMainnetHW"
   },
   "devDependencies": {

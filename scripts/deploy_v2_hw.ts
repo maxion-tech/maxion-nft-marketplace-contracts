@@ -3,9 +3,9 @@ import { utils } from "ethers";
 
 async function main() {
   // Environment variable validation
-  const { NFT_ADDRESS, CURRENCY_TOKEN_ADDRESS, PLATFORM_TREASURY_ADDRESS, PARTNER_ADDRESS, ADMIN_ADDRESS, TRADING_FEE_ADDRESS } = process.env;
+  const { NFT_ADDRESS, CURRENCY_TOKEN_ADDRESS, PLATFORM_TREASURY_ADDRESS, ADMIN_ADDRESS, TRADING_FEE_ADDRESS } = process.env;
 
-  if (!NFT_ADDRESS || !CURRENCY_TOKEN_ADDRESS || !PLATFORM_TREASURY_ADDRESS || !PARTNER_ADDRESS || !ADMIN_ADDRESS || !TRADING_FEE_ADDRESS) throw new Error("Environment variable not valid");
+  if (!NFT_ADDRESS || !CURRENCY_TOKEN_ADDRESS || !PLATFORM_TREASURY_ADDRESS || !ADMIN_ADDRESS || !TRADING_FEE_ADDRESS) throw new Error("Environment variable not valid");
 
   const minimumTradePrice = utils.parseEther("3");
 
