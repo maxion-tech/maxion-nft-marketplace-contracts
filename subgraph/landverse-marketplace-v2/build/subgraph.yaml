@@ -2,7 +2,7 @@ specVersion: 1.0.0
 indexerHints:
   prune: auto
 schema:
-  file: ./schema.graphql
+  file: schema.graphql
 dataSources:
   - kind: ethereum
     name: MaxionNFTMarketplaceV2
@@ -23,7 +23,7 @@ dataSources:
         - Unpaused
       abis:
         - name: MaxionNFTMarketplaceV2
-          file: ./abis/MaxionNFTMarketplaceV2.json
+          file: MaxionNFTMarketplaceV2/abis/MaxionNFTMarketplaceV2.json
       eventHandlers:
         - event: FeeUpdated(uint256,uint256)
           handler: handleFeeUpdated
@@ -31,8 +31,9 @@ dataSources:
           handler: handleMinimumTradePriceUpdated
         - event: Paused(address)
           handler: handlePaused
-        - event: Sold(indexed address,indexed address,indexed address,uint256,uint256,uint256,uint256,uint256,uint256,bool)
+        - event: Sold(indexed address,indexed address,indexed
+            address,uint256,uint256,uint256,uint256,uint256,uint256,bool)
           handler: handleSold
         - event: Unpaused(address)
           handler: handleUnpaused
-      file: ./src/maxion-nft-marketplace-v-2.ts
+      file: MaxionNFTMarketplaceV2/MaxionNFTMarketplaceV2.wasm
