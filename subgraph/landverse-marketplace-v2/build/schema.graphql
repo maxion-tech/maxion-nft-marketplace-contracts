@@ -1,0 +1,62 @@
+type Marketplace @entity {
+  id: ID!
+  feePercentage: BigInt!
+  fixedFee: BigInt!
+  minimumTradePrice: BigInt!
+  paused: Boolean!
+}
+
+type Transaction @entity(immutable: true) {
+  id: Bytes!
+  seller: Bytes! # address
+  buyer: Bytes! # address
+  nftTo: Bytes! # address
+  tokenId: BigInt! # uint256
+  amount: BigDecimal! # uint256
+  price: BigDecimal! # uint256
+  priceAfterFee: BigDecimal! # uint256
+  tradingFeePercent: BigDecimal! # uint256
+  tradingFeeAmount: BigDecimal! # uint256
+  fixedFeeAmount: BigDecimal! # uint256
+  totalFee: BigDecimal! # uint256
+  isBuyLimit: Boolean! # bool
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type TransactionHourData @entity {
+  id: ID!
+  startUnixTime: BigInt! # unix timestamp for start of hour
+  totalAmount: BigInt! # uint256
+  totalPrice: BigDecimal! # uint256
+  totalPriceAfterFee: BigDecimal! # uint256
+  totalTradingFee: BigDecimal! # uint256
+  totalFixedFee: BigDecimal! # uint256
+  totalFee: BigDecimal! # uint256
+  totalTransaction: BigInt! # uint256
+}
+
+type TransactionDayData @entity {
+  id: ID!
+  startUnixTime: BigInt! # unix timestamp for start of hour
+  totalAmount: BigInt! # uint256
+  totalPrice: BigDecimal! # uint256
+  totalPriceAfterFee: BigDecimal! # uint256
+  totalTradingFee: BigDecimal! # uint256
+  totalFixedFee: BigDecimal! # uint256
+  totalFee: BigDecimal! # uint256
+  totalTransaction: BigInt! # uint256
+}
+
+type TransactionMonthData @entity {
+  id: ID!
+  startUnixTime: BigInt! # unix timestamp for start of hour
+  totalAmount: BigInt! # uint256
+  totalPrice: BigDecimal! # uint256
+  totalPriceAfterFee: BigDecimal! # uint256
+  totalTradingFee: BigDecimal! # uint256
+  totalFixedFee: BigDecimal! # uint256
+  totalFee: BigDecimal! # uint256
+  totalTransaction: BigInt! # uint256
+}
