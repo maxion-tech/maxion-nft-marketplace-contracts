@@ -62,7 +62,7 @@ export function handleSold(event: SoldEvent): void {
   transaction.buyer = event.params.buyer
   transaction.nftTo = event.params.nftTo
   transaction.tokenId = event.params.tokenId
-  transaction.amount = event.params.amount.toBigDecimal().div(DECIMALS)
+  transaction.amount = event.params.amount.toBigDecimal()
   transaction.price = event.params.price.toBigDecimal().div(DECIMALS)
   transaction.priceAfterFee = event.params.netAmount.toBigDecimal().div(DECIMALS)
   transaction.tradingFeePercent = marketplace.feePercentage.toBigDecimal()
