@@ -8,9 +8,10 @@ import "@openzeppelin/contracts/access/AccessControl.sol"; // Provides role-base
 import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol"; // Makes the contract ERC1155 compatible.
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol"; // Interface for ERC1155 NFTs.
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol"; // Safe methods to interact with ERC20 tokens.
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol"; // ReentrancyGuard
 
 /// @custom:security-contact dev@maxion.tech
-contract MaxionNFTMarketplaceV2 is Pausable, AccessControl, ERC1155Holder {
+contract MaxionNFTMarketplaceV2 is Pausable, AccessControl, ERC1155Holder, ReentrancyGuard {
     using SafeERC20 for IERC20; // Using SafeERC20 library for safer ERC20 token operations.
 
     // Defining role constants to manage permissions in the contract.
@@ -179,6 +180,7 @@ contract MaxionNFTMarketplaceV2 is Pausable, AccessControl, ERC1155Holder {
         bool isBuyLimit
     )
         external
+        nonReentrant
         whenNotPaused
         onlyRole(TRADE_HANDLER_ROLE)
         tradable(TradeData(seller, buyer, tokenId, amount, price))
