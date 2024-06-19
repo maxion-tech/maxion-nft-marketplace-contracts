@@ -129,12 +129,13 @@ contract MaxionNFTMarketplaceV2 is
             nft.isApprovedForAll(tradeData.seller, address(this)),
             "Seller does not approve NFT yet"
         );
+
+        uint256 totalPrice = tradeData.price * tradeData.amount;
         require(
-            tradeData.price >= minimumTradePrice,
+            totalPrice >= minimumTradePrice,
             "Total price must be >= minimum trade price"
         );
 
-        uint256 totalPrice = tradeData.price * tradeData.amount;
         require(
             currencyContract.allowance(tradeData.buyer, address(this)) >=
                 totalPrice,
