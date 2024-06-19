@@ -268,6 +268,10 @@ contract MaxionNFTMarketplaceV2 is
     function setMinimumTradePrice(
         uint256 newMinimumTradePrice
     ) external onlyRole(PARAMETER_SETTER_ROLE) {
+        require(
+            newMinimumTradePrice > 0,
+            "Minimum trade price must be more than zero"
+        );
         minimumTradePrice = newMinimumTradePrice;
         emit MinimumTradePriceUpdated(newMinimumTradePrice);
     }
