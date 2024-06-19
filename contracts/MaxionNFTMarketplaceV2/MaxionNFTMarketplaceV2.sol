@@ -32,8 +32,8 @@ contract MaxionNFTMarketplaceV2 is Pausable, AccessControl, ERC1155Holder {
     IERC1155 public nft; // ERC1155 NFT contract.
 
     // Beneficiaries of fees.
-    address public tradingFeeWallet;
-    address public platformTreasuryWallet;
+    address public immutable tradingFeeWallet;
+    address public immutable platformTreasuryWallet;
 
     // Struct to define trade data.
     struct TradeData {
