@@ -11,7 +11,12 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol"; // Safe method
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol"; // ReentrancyGuard
 
 /// @custom:security-contact dev@maxion.tech
-contract MaxionNFTMarketplaceV2 is Pausable, AccessControl, ERC1155Holder, ReentrancyGuard {
+contract MaxionNFTMarketplaceV2 is
+    Pausable,
+    AccessControl,
+    ERC1155Holder,
+    ReentrancyGuard
+{
     using SafeERC20 for IERC20; // Using SafeERC20 library for safer ERC20 token operations.
 
     // Defining role constants to manage permissions in the contract.
@@ -245,6 +250,15 @@ contract MaxionNFTMarketplaceV2 is Pausable, AccessControl, ERC1155Holder, Reent
                 (newFeePercentage == FEE_DENOMINATOR && newFixedFee == 0),
             "Fee must not be more than 100"
         );
+
+        // Calculate the maximum possible percentage fee based on the minimum trade price
+        uint256 maximumPercentageFee = (minimumTradePrice * newFeePercentage) /
+            FEE_DENOMINATOR;
+        require(
+            newFixedFee + maximumPercentageFee <= minimumTradePrice,
+            "Total fees exceed minimum trade price"
+        );
+
         feePercentage = newFeePercentage;
         fixedFee = newFixedFee;
         emit FeeUpdated(newFeePercentage, newFixedFee);
