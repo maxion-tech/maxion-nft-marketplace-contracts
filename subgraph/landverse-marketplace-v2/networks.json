@@ -3,6 +3,10 @@
     "MaxionNFTMarketplaceV2": {
       "address": "0x0730f21A499543e2bDEF8C6a73ff19085Df2D54f",
       "startBlock": 35455493
+    },
+    "maxi": {
+      "address": "0xB5D2fC5628aE5537A9c62E9FCA1c242b470d455a",
+      "startBlock": 1244313
     }
   }
 }

@@ -6,6 +6,10 @@
     "build": "graph build",
     "deploy": "graph deploy --node https://api.thegraph.com/deploy/ maxion-tech/landverse-marketplace-v2",
     "create-local": "graph create --node http://localhost:8020/ maxion-tech/landverse-marketplace-v2",
+    "create:maxi": "graph create --node http://localhost:8020/ maxi/landverse-marketplace-v2",
+    "deploy:maxi-testnet": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 maxi/landverse-marketplace-v2 --network=maxi-testnet --network-file=networks.json",
+    "deploy:maxi-mainnet": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 maxi/landverse-marketplace-v2 --network=maxi-mainnet --network-file=networks.json",
+    "remove:maxi": "graph remove --node http://localhost:8020/ maxi/landverse-marketplace-v2",
     "remove-local": "graph remove --node http://localhost:8020/ maxion-tech/landverse-marketplace-v2",
     "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 maxion-tech/landverse-marketplace-v2",
     "test": "graph test"
