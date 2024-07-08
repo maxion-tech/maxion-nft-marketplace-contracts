@@ -236,13 +236,18 @@ contract MaxionNFTMarketplaceV2 is
         ); //1
     }
 
-    // Update fee parameters.
-    function setFees(
+    // New function to update trade parameters atomically
+    function updateTradeParameters(
         uint256 newFeePercentage,
-        uint256 newFixedFee
+        uint256 newFixedFee,
+        uint256 newMinimumTradePrice
     ) external onlyRole(PARAMETER_SETTER_ROLE) {
         require(
-            newFixedFee < minimumTradePrice,
+            newMinimumTradePrice > 0,
+            "Minimum trade price must be more than zero"
+        );
+        require(
+            newFixedFee < newMinimumTradePrice,
             "Fixed fee exceeds minimum trade price"
         );
         // if fee is 100 percent then fixed fee must be zero
@@ -252,28 +257,19 @@ contract MaxionNFTMarketplaceV2 is
             "Fee must not be more than 100"
         );
 
-        // Calculate the maximum possible percentage fee based on the minimum trade price
-        uint256 maximumPercentageFee = (minimumTradePrice * newFeePercentage) /
+        // Calculate the maximum possible percentage fee based on the new minimum trade price
+        uint256 maximumPercentageFee = (newMinimumTradePrice * newFeePercentage) /
             FEE_DENOMINATOR;
         require(
-            newFixedFee + maximumPercentageFee <= minimumTradePrice,
+            newFixedFee + maximumPercentageFee <= newMinimumTradePrice,
             "Total fees exceed minimum trade price"
         );
 
         feePercentage = newFeePercentage;
         fixedFee = newFixedFee;
-        emit FeeUpdated(newFeePercentage, newFixedFee);
-    }
-
-    // Update minimum trade price.
-    function setMinimumTradePrice(
-        uint256 newMinimumTradePrice
-    ) external onlyRole(PARAMETER_SETTER_ROLE) {
-        require(
-            newMinimumTradePrice > 0,
-            "Minimum trade price must be more than zero"
-        );
         minimumTradePrice = newMinimumTradePrice;
+
+        emit FeeUpdated(newFeePercentage, newFixedFee);
         emit MinimumTradePriceUpdated(newMinimumTradePrice);
     }
 
