@@ -241,7 +241,7 @@ contract MaxionNFTMarketplaceV2 is
         uint256 newFeePercentage,
         uint256 newFixedFee,
         uint256 newMinimumTradePrice
-    ) external onlyRole(PARAMETER_SETTER_ROLE) {
+    ) external nonReentrant onlyRole(PARAMETER_SETTER_ROLE) {
         require(
             newMinimumTradePrice > 0,
             "Minimum trade price must be more than zero"
@@ -258,8 +258,8 @@ contract MaxionNFTMarketplaceV2 is
         );
 
         // Calculate the maximum possible percentage fee based on the new minimum trade price
-        uint256 maximumPercentageFee = (newMinimumTradePrice * newFeePercentage) /
-            FEE_DENOMINATOR;
+        uint256 maximumPercentageFee = (newMinimumTradePrice *
+            newFeePercentage) / FEE_DENOMINATOR;
         require(
             newFixedFee + maximumPercentageFee <= newMinimumTradePrice,
             "Total fees exceed minimum trade price"
