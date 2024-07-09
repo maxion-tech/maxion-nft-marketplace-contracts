@@ -35,10 +35,10 @@ describe("NFT Marketplace V2 test", function () {
 
     const nftMarketplace = await NFTMarketplace.deploy(nft.address, // NFT address
       currencyToken.address, // Currency token address
-      platformTreasuryWallet.address, // Platform treasury wallet addfress
+      platformTreasuryWallet.address, // Platform treasury wallet address
       tradingFeeWallet.address, // Trading fee wallet address
       feePercentage, // Trading fee
-      fixedFee, // Platform tresury fee,
+      fixedFee, // Platform treasury fee,
       minimumTradePrice, // Minimum trade price
       admin.address); // Admin address
 
@@ -144,27 +144,26 @@ describe("NFT Marketplace V2 test", function () {
       fixedFee: BigNumber,
     }) => {
       const { nftMarketplace, parameterSetter } = await deployFixture();
-
-      await nftMarketplace.connect(parameterSetter).setMinimumTradePrice(data.minimumTradePrice);
-      await nftMarketplace.connect(parameterSetter).setFees(data.feePercentage * 10 ** 8, data.fixedFee);
-
+  
+      await nftMarketplace.connect(parameterSetter).updateTradeParameters(data.feePercentage * 10 ** 8, data.fixedFee, data.minimumTradePrice);
+  
       const { totalPrice, percentageFee, totalFee, netAmount } = await nftMarketplace.calculateTradeDetails(data.price, data.amount);
-
+  
       expect(totalPrice).to.be.eq(data.price.mul(data.amount));
       expect(percentageFee).to.be.eq(data.price.mul(data.amount).mul(data.feePercentage).div(100));
       expect(totalFee).to.be.eq(data.price.mul(data.amount).mul(data.feePercentage).div(100).add(data.fixedFee));
       expect(netAmount).to.be.eq(data.price.mul(data.amount).sub(data.price.mul(data.amount).mul(data.feePercentage).div(100)).sub(data.fixedFee));
     }
-
-    it("Can calculation 20 times with random data", async (numberOfTest: number = 20) => {
+  
+    it("Can calculate 20 times with random data", async (numberOfTest: number = 20) => {
       for (let index = 0; index < numberOfTest; index++) {
-
+  
         const minimumTradePrice = utils.parseEther(_.random(1, 100).toString());
         const price = utils.parseEther(_.random(Number(ethers.utils.formatEther(minimumTradePrice)), Number(ethers.utils.formatEther(minimumTradePrice)) + 100_000_000).toString());
         const amount = utils.parseEther(_.random(1, 100_000_000).toString());
         const feePercentage = _.random(1, 100);
-        const fixedFee = feePercentage === 100 ? ethers.BigNumber.from(0) : utils.parseEther(_.random(0, Number(ethers.utils.formatEther(minimumTradePrice)) - 1).toString());
-
+        const fixedFee = calculateFixedFee(minimumTradePrice, feePercentage);
+  
         await calculationTest({
           minimumTradePrice,
           price,
@@ -174,6 +173,15 @@ describe("NFT Marketplace V2 test", function () {
         });
       }
     });
+  
+    const calculateFixedFee = (minimumTradePrice: BigNumber, feePercentage: number): BigNumber => {
+      const initialFixedFee = feePercentage === 100 ? ethers.BigNumber.from(0) : utils.parseEther(_.random(0, Number(ethers.utils.formatEther(minimumTradePrice)) - 1).toString());
+      const maximumPercentageFee = minimumTradePrice.mul(feePercentage).div(100);
+      
+      return initialFixedFee.add(maximumPercentageFee).gt(minimumTradePrice)
+        ? minimumTradePrice.sub(maximumPercentageFee)
+        : initialFixedFee;
+    }
   });
 
   describe("Trade test", () => {
@@ -186,7 +194,7 @@ describe("NFT Marketplace V2 test", function () {
     * 5) Check mininum trade price
     */
     it("Must error validation not pass tradable modifier", async () => {
-      const { nftMarketplace, currencyToken, nft, parameterSetter, buyer, seller, platformTreasuryWallet, tradingFeeWallet, tradeHandler } = await deployFixture();
+      const { nftMarketplace, currencyToken, nft, parameterSetter, buyer, seller, platformTreasuryWallet, tradingFeeWallet, tradeHandler, feePercentage, fixedFee } = await deployFixture();
 
       // Check seller insufficient NFT amount
       await expect(nftMarketplace.connect(tradeHandler).trade(seller.address, buyer.address, buyer.address, 1, 1, utils.parseEther("100"), false)).to.be.revertedWith("Seller insufficient NFT amount");
@@ -212,9 +220,9 @@ describe("NFT Marketplace V2 test", function () {
       await currencyToken.mint(buyer.address, utils.parseEther("100"));
 
       // Check mininum trade price
-      await nftMarketplace.connect(parameterSetter).setMinimumTradePrice(utils.parseEther("1000"));
+      await nftMarketplace.connect(parameterSetter).updateTradeParameters(feePercentage, fixedFee, utils.parseEther("1000"));
       await expect(nftMarketplace.connect(tradeHandler).trade(seller.address, buyer.address, buyer.address, 1, 1, utils.parseEther("100"), false)).to.be.revertedWith("Total price must be >= minimum trade price");
-      await nftMarketplace.connect(parameterSetter).setMinimumTradePrice(utils.parseEther("100"));
+      await nftMarketplace.connect(parameterSetter).updateTradeParameters(feePercentage, fixedFee, utils.parseEther("100"));
 
       // All operation pass
       await nftMarketplace.connect(tradeHandler).trade(seller.address, buyer.address, buyer.address, 1, 1, utils.parseEther("100"), false);

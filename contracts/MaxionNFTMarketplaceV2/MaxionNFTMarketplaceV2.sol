@@ -8,9 +8,15 @@ import "@openzeppelin/contracts/access/AccessControl.sol"; // Provides role-base
 import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol"; // Makes the contract ERC1155 compatible.
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol"; // Interface for ERC1155 NFTs.
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol"; // Safe methods to interact with ERC20 tokens.
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol"; // ReentrancyGuard
 
 /// @custom:security-contact dev@maxion.tech
-contract MaxionNFTMarketplaceV2 is Pausable, AccessControl, ERC1155Holder {
+contract MaxionNFTMarketplaceV2 is
+    Pausable,
+    AccessControl,
+    ERC1155Holder,
+    ReentrancyGuard
+{
     using SafeERC20 for IERC20; // Using SafeERC20 library for safer ERC20 token operations.
 
     // Defining role constants to manage permissions in the contract.
@@ -32,8 +38,8 @@ contract MaxionNFTMarketplaceV2 is Pausable, AccessControl, ERC1155Holder {
     IERC1155 public nft; // ERC1155 NFT contract.
 
     // Beneficiaries of fees.
-    address public tradingFeeWallet;
-    address public platformTreasuryWallet;
+    address public immutable tradingFeeWallet;
+    address public immutable platformTreasuryWallet;
 
     // Struct to define trade data.
     struct TradeData {
@@ -123,12 +129,13 @@ contract MaxionNFTMarketplaceV2 is Pausable, AccessControl, ERC1155Holder {
             nft.isApprovedForAll(tradeData.seller, address(this)),
             "Seller does not approve NFT yet"
         );
+
+        uint256 totalPrice = tradeData.price * tradeData.amount;
         require(
-            tradeData.price >= minimumTradePrice,
+            totalPrice >= minimumTradePrice,
             "Total price must be >= minimum trade price"
         );
 
-        uint256 totalPrice = tradeData.price * tradeData.amount;
         require(
             currencyContract.allowance(tradeData.buyer, address(this)) >=
                 totalPrice,
@@ -179,6 +186,7 @@ contract MaxionNFTMarketplaceV2 is Pausable, AccessControl, ERC1155Holder {
         bool isBuyLimit
     )
         external
+        nonReentrant
         whenNotPaused
         onlyRole(TRADE_HANDLER_ROLE)
         tradable(TradeData(seller, buyer, tokenId, amount, price))
@@ -228,13 +236,18 @@ contract MaxionNFTMarketplaceV2 is Pausable, AccessControl, ERC1155Holder {
         ); //1
     }
 
-    // Update fee parameters.
-    function setFees(
+    // New function to update trade parameters atomically
+    function updateTradeParameters(
         uint256 newFeePercentage,
-        uint256 newFixedFee
-    ) external onlyRole(PARAMETER_SETTER_ROLE) {
+        uint256 newFixedFee,
+        uint256 newMinimumTradePrice
+    ) external nonReentrant onlyRole(PARAMETER_SETTER_ROLE) {
         require(
-            newFixedFee < minimumTradePrice,
+            newMinimumTradePrice > 0,
+            "Minimum trade price must be more than zero"
+        );
+        require(
+            newFixedFee < newMinimumTradePrice,
             "Fixed fee exceeds minimum trade price"
         );
         // if fee is 100 percent then fixed fee must be zero
@@ -243,16 +256,20 @@ contract MaxionNFTMarketplaceV2 is Pausable, AccessControl, ERC1155Holder {
                 (newFeePercentage == FEE_DENOMINATOR && newFixedFee == 0),
             "Fee must not be more than 100"
         );
+
+        // Calculate the maximum possible percentage fee based on the new minimum trade price
+        uint256 maximumPercentageFee = (newMinimumTradePrice *
+            newFeePercentage) / FEE_DENOMINATOR;
+        require(
+            newFixedFee + maximumPercentageFee <= newMinimumTradePrice,
+            "Total fees exceed minimum trade price"
+        );
+
         feePercentage = newFeePercentage;
         fixedFee = newFixedFee;
-        emit FeeUpdated(newFeePercentage, newFixedFee);
-    }
-
-    // Update minimum trade price.
-    function setMinimumTradePrice(
-        uint256 newMinimumTradePrice
-    ) external onlyRole(PARAMETER_SETTER_ROLE) {
         minimumTradePrice = newMinimumTradePrice;
+
+        emit FeeUpdated(newFeePercentage, newFixedFee);
         emit MinimumTradePriceUpdated(newMinimumTradePrice);
     }
 
