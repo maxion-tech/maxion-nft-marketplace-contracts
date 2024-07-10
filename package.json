@@ -7,7 +7,8 @@
     "deploy:bsc-testnet:hw": "source .env.testnet && hardhat run scripts/deploy_hw.ts --network bscTestnet",
     "deploy:v2:bsc-testnet:hw": "source .env.testnet && hardhat run scripts/deploy_v2_hw.ts --network bscTestnetHW",
     "deploy:v2:bsc-mainnet:hw": "source .env && hardhat run scripts/deploy_v2_hw.ts --network bscMainnetHW",
-    "deploy:bsc-mainnet:hw": "source .env && hardhat run scripts/deploy_hw.ts --network bscMainnetHW"
+    "deploy:bsc-mainnet:hw": "source .env && hardhat run scripts/deploy_hw.ts --network bscMainnetHW",
+    "deploy:maxi-mainnet:hw": "source .env.maxi.mainnet && hardhat run scripts/deploy_v2.ts --network maxiMainnetHW"
   },
   "devDependencies": {
     "@ethersproject/hardware-wallets": "^5.7.0",
